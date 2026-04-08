@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GramShiksha — Login</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#6c63ff"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    .role-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+    .role-card {
+      border:3px solid var(--border); border-radius:0px; padding:16px 8px;
+      text-align:center; cursor:pointer; transition:all .2s; background:var(--card);
+      box-shadow: 4px 4px 0px var(--border);
+    }
+    .role-card:hover { border-color:var(--accent); transform:translate(-2px, -2px); box-shadow: 6px 6px 0px var(--accent); }
+    .role-card.selected-student { border-color:var(--border); background:var(--accent2); box-shadow: 6px 6px 0px var(--border); transform:translate(-2px, -2px);}
+    .role-card.selected-parent  { border-color:var(--border); background:var(--accent); box-shadow: 6px 6px 0px var(--border); transform:translate(-2px, -2px);}
+    .role-card.selected-admin   { border-color:var(--border); background:var(--accent3); box-shadow: 6px 6px 0px var(--border); transform:translate(-2px, -2px);}
+    .role-card .role-icon { font-size:2.5rem; margin-bottom:12px; }
+    .role-card .role-name { font-size:1rem; font-weight:800; color:var(--text); text-transform:uppercase; }
+    .portal-badge {
+      display:inline-block; padding:8px 16px; border:3px solid var(--border);
+      font-size:.9rem; font-weight:800; margin-bottom:16px; box-shadow: 2px 2px 0px var(--border);
+      text-transform:uppercase; background: var(--bg);
+    }
+    .badge-student { background:var(--accent2); color:var(--text); }
+    .badge-parent  { background:var(--accent);  color:#fff; }
+    .badge-admin   { background:var(--accent3);  color:var(--text); }
+  </style>
+</head>
+<body class="portal-body">
+  <nav class="navbar" style="padding:15px 5%;display:flex;justify-content:space-between;">
+    <a class="navbar-brand" href="/">Gram<span>Shiksha</span></a>
+    <div>
+      <select id="lang-selector" class="input input-sm" style="width:auto;padding:5px 10px;font-size:0.9rem;" onchange="changeLanguage()">
+        <option value="en">English</option>
+        <option value="hi">हिंदी (Hindi)</option>
+        <option value="te">తెలుగు (Telugu)</option>
+      </select>
+    </div>
+  </nav>
+
+  <div class="auth-wrap">
+    <div class="card auth-card" style="max-width:460px;">
+
+      <!-- Step 1: Role selector (always visible) -->
+      <h2 style="margin-bottom:4px;" data-i18n="welcome">Welcome 👋</h2>
+      <p class="text-muted" style="margin-bottom:18px;font-size:.9rem;" data-i18n="selectRole">Select your role to continue</p>
+
+      <div class="role-grid" id="role-grid">
+        <div class="role-card" id="card-student" onclick="selectRole('student')">
+          <div class="role-icon">👨‍🎓</div>
+          <div class="role-name" data-i18n="student">Student</div>
+        </div>
+        <div class="role-card" id="card-parent" onclick="selectRole('parent')">
+          <div class="role-icon">👨‍👩‍👧</div>
+          <div class="role-name" data-i18n="parent">Parent</div>
+        </div>
+        <div class="role-card" id="card-admin" onclick="selectRole('admin')">
+          <div class="role-icon">🛠️</div>
+          <div class="role-name" data-i18n="admin">Admin</div>
+        </div>
+      </div>
+
+      <!-- Step 2: Login / Register form (shown after role selected) -->
+      <div id="form-area" class="hidden">
+        <div id="role-badge" class="text-center"></div>
+
+        <div class="auth-tabs">
+          <div class="auth-tab active" id="tab-login" onclick="switchTab('login')" data-i18n="login">Login</div>
+          <div class="auth-tab" id="tab-register" onclick="switchTab('register')" data-i18n="register">Register</div>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form class="auth-form" id="form-login" onsubmit="handleLogin(event)">
+          <div class="input-group">
+            <label for="login-email" data-i18n="email">Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" required/>
+          </div>
+          <div class="input-group">
+            <label for="login-password" data-i18n="password">Password</label>
+            <input type="password" id="login-password" placeholder="••••••••" required/>
+          </div>
+          <button class="btn btn-primary w-full" type="submit" id="login-btn" data-orig="Login" data-i18n="login">Login</button>
+          <div id="login-alert"></div>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form class="auth-form hidden" id="form-register" onsubmit="handleRegister(event)">
+          <div class="input-group">
+            <label for="reg-name" data-i18n="fullName">Full Name</label>
+            <input type="text" id="reg-name" placeholder="Riya Sharma" required/>
+          </div>
+          <div class="input-group">
+            <label for="reg-email" data-i18n="email">Email</label>
+            <input type="email" id="reg-email" placeholder="you@example.com" required/>
+          </div>
+          <div class="input-group">
+            <label for="reg-password" data-i18n="password">Password</label>
+            <input type="password" id="reg-password" placeholder="Min 6 characters" required minlength="6"/>
+          </div>
+          <!-- Grade shown only for students -->
+          <div class="input-group" id="grade-group" style="display:none;">
+            <label for="reg-grade" data-i18n="grade">Grade</label>
+            <select id="reg-grade">
+              <option value="1">Grade 1</option><option value="2">Grade 2</option>
+              <option value="3">Grade 3</option><option value="4">Grade 4</option>
+              <option value="5">Grade 5</option><option value="6" selected>Grade 6</option>
+              <option value="7">Grade 7</option><option value="8">Grade 8</option>
+              <option value="9">Grade 9</option><option value="10">Grade 10</option>
+              <option value="11">Grade 11</option><option value="12">Grade 12</option>
+            </select>
+          </div>
+          <button class="btn btn-primary w-full" type="submit" id="reg-btn" data-orig="Create Account" data-i18n="createAccount">Create Account</button>
+          <div id="reg-alert"></div>
+        </form>
+
+        <div class="divider mt-2">or</div>
+        <button class="btn btn-google w-full mt-1" id="google-btn" onclick="handleGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google"/>
+          <span data-i18n="continueGoogle">Continue with Google</span>
+        </button>
+        <div id="google-alert"></div>
+
+        <button class="btn btn-outline btn-sm w-full" style="margin-top:12px;" onclick="resetRole()" data-i18n="changeRole">← Change Role</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/i18n.js?v=6"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import {
+      getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+      GoogleAuthProvider, signInWithPopup
+    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+    let auth, selectedRole = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('lang-selector').value = window.getLang();
+    });
+
+    window.changeLanguage = function() {
+      const lang = document.getElementById('lang-selector').value;
+      window.setLang(lang);
+    };
+
+    const PORTAL = { student:'/student.html', parent:'/parent.html', admin:'/admin.html' };
+    const BADGE_HTML = {
+      student: '<span class="portal-badge badge-student">👨‍🎓 Student Portal</span>',
+      parent:  '<span class="portal-badge badge-parent">👨‍👩‍👧 Parent Portal</span>',
+      admin:   '<span class="portal-badge badge-admin">🛠️ Admin Portal</span>',
+    };
+
+    async function initFirebase() {
+      const res = await fetch('/config');
+      const config = await res.json();
+      const app = initializeApp(config);
+      auth = getAuth(app);
+    }
+    await initFirebase();
+
+    // Preserve button text
+    ['login-btn','reg-btn','google-btn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.dataset.orig = el.textContent;
+    });
+
+    window.selectRole = function(role) {
+      selectedRole = role;
+      // Update card styles
+      ['student','parent','admin'].forEach(r => {
+        document.getElementById(`card-${r}`).classList.remove(`selected-${r}`);
+      });
+      document.getElementById(`card-${role}`).classList.add(`selected-${role}`);
+      
+      const badgeText = role === 'student' ? '👨‍🎓 ' + window.T('student') :
+                        role === 'parent'  ? '👨‍👩‍👧 ' + window.T('parent') :
+                        '🛠️ ' + window.T('admin');
+      document.getElementById('role-badge').innerHTML = `<span class="portal-badge badge-${role}">${badgeText}</span>`;
+
+      // Show form
+      document.getElementById('form-area').classList.remove('hidden');
+      const gradeGroup = document.getElementById('grade-group');
+      gradeGroup.style.display = role === 'student' ? '' : 'none';
+    };
+
+    window.resetRole = function() {
+      selectedRole = null;
+      ['student','parent','admin'].forEach(r =>
+        document.getElementById(`card-${r}`).className = 'role-card'
+      );
+      document.getElementById('form-area').classList.add('hidden');
+      clearAlerts();
+    };
+
+    window.switchTab = function(tab) {
+      document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab !== 'login');
+      clearAlerts();
+    };
+
+    function clearAlerts() {
+      ['login-alert','reg-alert','google-alert'].forEach(id =>
+        document.getElementById(id).innerHTML = '');
+    }
+
+    function showAlert(id, msg, type='error') {
+      document.getElementById(id).innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.disabled = loading;
+      btn.innerHTML = loading ? '<div class="spinner"></div>' : (btn.dataset.orig || btn.textContent);
+    }
+
+    async function saveAndRedirect(user) {
+      const token = await user.getIdToken();
+      localStorage.setItem('gs_token', token);
+      localStorage.setItem('gs_uid', user.uid);
+
+      // Try to get stored name from Firestore profile
+      try {
+        const r = await fetch(`/auth/user/${user.uid}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (r.ok) {
+          const profile = await r.json();
+          localStorage.setItem('gs_name', profile.name || user.displayName || 'User');
+          localStorage.setItem('gs_grade', profile.grade || '6');
+          // If no role selected, fall back to stored role
+          if (!selectedRole) selectedRole = profile.role;
+        }
+      } catch {}
+
+      localStorage.setItem('gs_role', selectedRole || 'student');
+      window.location.href = PORTAL[selectedRole] || '/student.html';
+    }
+
+    window.handleLogin = async function(e) {
+      e.preventDefault();
+      if (!selectedRole) return showAlert('login-alert', 'Please select a role first');
+      setLoading('login-btn', true);
+      try {
+        const email = document.getElementById('login-email').value;
+        const pass  = document.getElementById('login-password').value;
+        const cred  = await signInWithEmailAndPassword(auth, email, pass);
+        await saveAndRedirect(cred.user);
+      } catch (err) {
+        showAlert('login-alert', err.message);
+      } finally {
+        setLoading('login-btn', false);
+      }
+    };
+
+    window.handleRegister = async function(e) {
+      e.preventDefault();
+      if (!selectedRole) return showAlert('reg-alert', 'Please select a role first');
+      setLoading('reg-btn', true);
+      try {
+        const name  = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const pass  = document.getElementById('reg-password').value;
+        const grade = document.getElementById('reg-grade').value;
+
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const token = await cred.user.getIdToken();
+
+        const res = await fetch('/auth/register', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ uid: cred.user.uid, name, email, role: selectedRole, grade })
+        });
+        if (!res.ok) throw new Error('Failed to save profile');
+
+        localStorage.setItem('gs_name', name);
+        await saveAndRedirect(cred.user);
+      } catch (err) {
+        showAlert('reg-alert', err.message);
+      } finally {
+        setLoading('reg-btn', false);
+      }
+    };
+
+    window.handleGoogle = async function() {
+      if (!selectedRole) return showAlert('google-alert', 'Please select a role first');
+      setLoading('google-btn', true);
+      try {
+        const provider = new GoogleAuthProvider();
+        const cred = await signInWithPopup(auth, provider);
+        const token = await cred.user.getIdToken();
+
+        // Check if profile exists
+        const existing = await fetch(`/auth/user/${cred.user.uid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!existing.ok) {
+          // New Google user — register with selected role
+          await fetch('/auth/register', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              uid: cred.user.uid, name: cred.user.displayName,
+              email: cred.user.email, role: selectedRole, grade: '6'
+            })
+          });
+          localStorage.setItem('gs_name', cred.user.displayName || 'User');
+        }
+        await saveAndRedirect(cred.user);
+      } catch (err) {
+        showAlert('google-alert', err.message);
+      } finally {
+        setLoading('google-btn', false);
+      }
+    };
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) { registration.unregister(); }
+      });
+      caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+      });
+      setTimeout(() => {
+        navigator.serviceWorker.register('/sw.js?v=' + Date.now()).catch(() => {});
+        if (!window.location.search.includes('refreshed=1')) {
+          const newUrl = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'refreshed=1';
+          window.location.replace(newUrl);
+        }
+      }, 500);
+    }
+  </script>
+</body>
+</html>
+```

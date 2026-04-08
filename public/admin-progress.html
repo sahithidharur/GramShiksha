@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GramShiksha — Children Progress</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .section-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+    .progress-table{width:100%;border-collapse:collapse;}
+    .progress-table th,
+    .progress-table td{padding:14px 12px;border-bottom:1px solid var(--border);}
+    .progress-table th{background:var(--bg2);text-align:left;font-weight:700;}
+    .status-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;font-size:.85rem;font-weight:700;}
+    .status-chip.green{background:rgba(100,196,118,.15);color:var(--accent2);}
+    .status-chip.yellow{background:rgba(255,176,0,.12);color:var(--accent3);}
+    .status-chip.red{background:rgba(255,115,115,.12);color:var(--danger);}
+  </style>
+</head>
+<body class="portal-body">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      Gram<span>Shiksha</span>
+      <button class="btn btn-outline btn-sm" onclick="goAdmin()" style="margin-left:14px;">← Admin Dashboard</button>
+      <button class="btn btn-outline btn-sm" onclick="goHome()" style="margin-left:14px;">← Home</button>
+    </div>
+    <div class="navbar-user flex items-center gap-3">
+      <select id="lang-selector" class="input input-sm" style="width:auto;padding:5px 10px;font-size:0.9rem;" onchange="changeLanguage()">
+        <option value="en">English</option>
+        <option value="hi">हिंदी (Hindi)</option>
+        <option value="te">తెలుగు (Telugu)</option>
+      </select>
+      <span id="nav-name">...</span>
+      <button class="btn btn-outline btn-sm" onclick="logout()" data-i18n="logout">Logout</button>
+    </div>
+  </nav>
+
+  <main class="portal-main">
+    <div class="card" style="margin-bottom:24px;">
+      <div class="section-header">
+        <div>
+          <h2 style="margin-bottom:6px;">Children Progress</h2>
+          <p class="text-muted" style="margin:0;">See all student progress, XP, completed topics and last activity.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadProgress()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div id="summary" class="card" style="margin-bottom:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+      <div class="stat-card"><div class="stat-value" id="sum-students">—</div><div class="stat-label">Students</div></div>
+      <div class="stat-card"><div class="stat-value" id="sum-xp">—</div><div class="stat-label">Total XP</div></div>
+      <div class="stat-card"><div class="stat-value" id="sum-topics">—</div><div class="stat-label">Completed Topics</div></div>
+      <div class="stat-card"><div class="stat-value" id="sum-active">—</div><div class="stat-label">Active Today</div></div>
+    </div>
+
+    <div class="card" style="overflow-x:auto;">
+      <table class="progress-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Email</th>
+            <th>XP</th>
+            <th>Level</th>
+            <th>Completed Topics</th>
+            <th>Last Active</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="progress-body">
+          <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text2);">Loading student progress...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="progress-alert" style="margin-top:20px;"></div>
+  </main>
+
+  <script src="js/i18n.js?v=6"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+    let auth;
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('lang-selector').value = window.getLang();
+    });
+
+    window.changeLanguage = function() {
+      window.setLang(document.getElementById('lang-selector').value);
+    };
+
+    window.goAdmin = function() { window.location.href = 'admin.html'; };
+    window.goHome = function() { window.location.href = 'index.html'; };
+
+    async function init() {
+      const res = await fetch('config');
+      const config = await res.json();
+      const app = initializeApp(config);
+      auth = getAuth(app);
+    }
+    await init();
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('nav-name').textContent = `👤 ${localStorage.getItem('gs_name') || user.displayName || 'Admin'}`;
+      await loadProgress();
+    });
+
+    async function loadProgress() {
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) return;
+
+      try {
+        const usersRes = await fetch('/admin/users', { headers: { Authorization: `Bearer ${token}` } });
+        if (!usersRes.ok) throw new Error('Unable to load users');
+        const { users } = await usersRes.json();
+        const students = users.filter(u => u.role === 'student');
+
+        const progressRows = await Promise.all(students.map(async (student) => {
+          const progressRes = await fetch(`/progress/${student.uid}`, { headers: { Authorization: `Bearer ${token}` } });
+          return { student, progress: progressRes.ok ? await progressRes.json() : null };
+        }));
+
+        renderProgress(progressRows.map(p => ({
+          uid: p.student.uid,
+          name: p.student.name || 'Unknown',
+          email: p.student.email || '—',
+          xp: (p.progress?.stats?.xp ?? 0),
+          level: (p.progress?.stats?.level ?? 1),
+          completedTopics: (p.progress?.progress?.completedTopics?.length ?? 0),
+          lastActive: p.progress?.progress?.lastActive || 'Never'
+        })));
+        renderSummary(progressRows);
+        document.getElementById('progress-alert').innerHTML = '';
+      } catch (err) {
+        document.getElementById('progress-alert').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    function renderSummary(items) {
+      const students = items.length;
+      const totalXP = items.reduce((sum, item) => sum + (item.progress?.stats?.xp || 0), 0);
+      const totalTopics = items.reduce((sum, item) => sum + (item.progress?.progress?.completedTopics?.length || 0), 0);
+      const activeToday = items.filter(item => {
+        const last = item.progress?.progress?.lastActive;
+        return last && new Date(last).toDateString() === new Date().toDateString();
+      }).length;
+
+      document.getElementById('sum-students').textContent = students;
+      document.getElementById('sum-xp').textContent = totalXP;
+      document.getElementById('sum-topics').textContent = totalTopics;
+      document.getElementById('sum-active').textContent = activeToday;
+    }
+
+    function renderProgress(rows) {
+      const nowTs = Date.now();
+      const body = document.getElementById('progress-body');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text2);">No students found.</td></tr>';
+        return;
+      }
+
+      body.innerHTML = rows.map((row, i) => {
+        const lastActiveDate = row.lastActive === 'Never' ? 'Never' : new Date(row.lastActive).toLocaleDateString();
+        const daysInactive = row.lastActive === 'Never' ? Infinity : (nowTs - new Date(row.lastActive).getTime()) / (1000*3600*24);
+        const statusClass = daysInactive <= 3 ? 'green' : daysInactive <= 7 ? 'yellow' : 'red';
+        const statusText = row.lastActive === 'Never' ? 'No Activity' : daysInactive <= 3 ? 'Active' : daysInactive <= 7 ? 'Idle' : 'Inactive';
+        return `
+          <tr>
+            <td>${i+1}</td>
+            <td>${row.name}</td>
+            <td>${row.email}</td>
+            <td>${row.xp}</td>
+            <td>${row.level}</td>
+            <td>${row.completedTopics}</td>
+            <td>${lastActiveDate}</td>
+            <td><span class="status-chip ${statusClass}">${statusText}</span></td>
+          </tr>`;
+      }).join('');
+    }
+
+    window.logout = async function() { await signOut(auth); localStorage.clear(); window.location.href = 'login.html'; };
+  </script>
+  <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>

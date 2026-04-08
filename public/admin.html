@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GramShiksha — Admin Portal</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .tab-bar{display:flex;background:var(--bg2);border-bottom:3px solid var(--border);padding:0 20px;position:sticky;top:60px;z-index:90;}
+    .tab-item{padding:16px 20px;cursor:pointer;font-weight:800;font-size:1rem;color:var(--text2);border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;text-transform:uppercase;}
+    .tab-item.active{color:var(--accent);border-bottom-color:var(--accent);background:transparent;}
+    .tab-item:hover{color:var(--accent);}
+    .tab-panel{display:none;} .tab-panel.active{display:block;}
+    .activity-row{padding:14px 0;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:12px;}
+    .activity-dot{width:12px;height:12px;border-radius:0px;background:var(--accent2);flex-shrink:0;border:2px solid var(--border);}
+    .search-bar{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+    .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;}
+    .modal.hidden{display:none;}
+    .modal-content{background:var(--card);border:3px solid var(--border);border-radius:0px;max-width:500px;width:90%;box-shadow:8px 8px 0px var(--border);}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:2px solid var(--border);}
+    .modal-body{padding:20px;}
+    .modal-footer{display:flex;gap:12px;justify-content:flex-end;padding:20px;border-top:2px solid var(--border);}
+    .btn-close{background:none;border:none;font-size:2rem;cursor:pointer;color:var(--text2);}
+  </style>
+</head>
+<body class="portal-body">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      Gram<span>Shiksha</span>
+      <button class="btn btn-outline btn-sm" onclick="navigateHome()" style="margin-left:14px;">← Home</button>
+      <button class="btn btn-outline btn-sm" onclick="navigateProgress()" style="margin-left:14px;">Children Progress</button>
+    </div>
+    <div class="navbar-user flex items-center gap-3">
+      <select id="lang-selector" class="input input-sm" style="width:auto;padding:5px 10px;font-size:0.9rem;" onchange="changeLanguage()">
+        <option value="en">English</option>
+        <option value="hi">हिंदी (Hindi)</option>
+        <option value="te">తెలుగు (Telugu)</option>
+      </select>
+      <span id="nav-name">...</span>
+      <button class="btn btn-outline btn-sm" onclick="logout()" data-i18n="logout">Logout</button>
+    </div>
+  </nav>
+
+  <div class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('overview')">📊 Overview</div>
+    <div class="tab-item" onclick="switchTab('users')">👥 Users</div>
+    <div class="tab-item" onclick="switchTab('activity')">📡 Activity</div>
+  </div>
+
+  <main class="portal-main">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div id="tab-overview" class="tab-panel active">
+      <h2 style="margin-bottom:4px;" data-i18n="platformOverview">Platform Overview</h2>
+      <p class="text-muted" style="margin-bottom:20px;" id="last-refresh">Loading analytics...</p>
+
+      <div class="stats-row" style="margin-bottom:24px;">
+        <div class="stat-card"><div class="stat-value" id="ov-users">—</div><div class="stat-label" data-i18n="totalUsers">Total Users</div></div>
+        <div class="stat-card"><div class="stat-value" id="ov-students">—</div><div class="stat-label" data-i18n="students" data-i18n="students">Students</div></div>
+        <div class="stat-card"><div class="stat-value" id="ov-parents">—</div><div class="stat-label" data-i18n="parents" data-i18n="parents">Parents</div></div>
+        <div class="stat-card"><div class="stat-value" id="ov-admins">—</div><div class="stat-label" data-i18n="admins" data-i18n="admins">Admins</div></div>
+        <div class="stat-card"><div class="stat-value" id="ov-xp">—</div><div class="stat-label" data-i18n="xpDistributed">XP Distributed</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        <div class="card">
+          <div class="section-title" data-i18n="userBreakdown">👥 User Breakdown</div>
+          <div id="user-breakdown"></div>
+        </div>
+        <div class="card" style="animation: fadeIn 0.4s ease-in-out;">
+          <div class="section-title" data-i18n="studentXpCompare">📊 Student XP Comparison</div>
+          <canvas id="xpChart" style="max-height: 250px;"></canvas>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card" style="animation: fadeIn 0.5s ease-in-out; border-left: 4px solid var(--danger);">
+          <div class="section-title" style="color:var(--danger);" data-i18n="inactiveStudents">⚠️ Inactive Students (3+ Days)</div>
+          <div id="inactive-students"></div>
+        </div>
+
+        <div class="card" style="animation: fadeIn 0.6s ease-in-out; background:var(--bg);">
+          <div class="section-title" data-i18n="sendAnnouncement">📢 Send Global Announcement</div>
+          <textarea id="announcement-text" class="input mb-2" placeholder="Type a message to show on all student dashboards..." style="min-height:80px;"></textarea>
+          <button class="btn btn-primary btn-sm w-full mt-1" onclick="sendAnnouncement()" data-orig="🚀 Publish Announcement" data-i18n="publishBtn">🚀 Publish Announcement</button>
+          <div id="announcement-status" style="margin-top:10px;font-size:0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ USERS ═══ -->
+    <div id="tab-users" class="tab-panel">
+      <div class="search-bar" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:12px; flex:1;">
+          <input type="text" id="search-input" placeholder="Search by name or email..." data-i18n="searchUsers" style="min-width:200px;" oninput="filterUsers()"/>
+          <select id="role-filter" style="width:auto;" onchange="filterUsers()">
+            <option value="all">All Roles</option>
+            <option value="student">Students</option>
+            <option value="parent">Parents</option>
+            <option value="admin">Admins</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadData()" data-orig="↻ Refresh" data-i18n="refreshBtn">↻ Refresh</button>
+        </div>
+        <button class="btn btn-success btn-sm" style="animation: fadeIn 0.3s ease-in-out;" onclick="exportCSV()" data-i18n="exportCsv">📥 Export Report (CSV)</button>
+      </div>
+      <p class="text-muted" style="font-size:.83rem;margin-bottom:12px;" id="user-count"></p>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Grade</th><th>Parent</th><th>Joined</th><th>UID</th></tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text2);">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ACTIVITY ═══ -->
+    <div id="tab-activity" class="tab-panel">
+      <h2 style="margin-bottom:16px;" data-i18n="platformActivity">Platform Activity</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        <div class="card">
+          <div class="section-title">🕐 Recently Active Students</div>
+          <div id="recent-active"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">🏆 Top Performers (by XP)</div>
+          <div id="top-performers"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📋 New Registrations</div>
+        <div id="new-users"></div>
+      </div>
+    </div>
+
+    <div id="admin-alert"></div>
+  </main>
+
+  <!-- Link Parent Modal -->
+  <div id="link-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔗 Link Student to Parent</h3>
+        <button class="btn-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="link-student-name" style="margin-bottom:16px;"></p>
+        <div class="input-group">
+          <label for="parent-select">Select Parent:</label>
+          <select id="parent-select" style="width:100%;">
+            <option value="">Choose a parent...</option>
+          </select>
+        </div>
+        <div id="link-alert"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmLink()">Link Student</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/i18n.js?v=6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    let auth, db, allUsers = [], analyticsData = {};
+    const ROLE_CLS = { student:'badge', parent:'badge badge-green', admin:'badge badge-gold' };
+    let xpChartInstance = null;
+    const EMPTY_ANALYTICS = {
+      totalUsers: 0,
+      totalStudents: 0,
+      totalParents: 0,
+      totalAdmins: 0,
+      totalXPDistributed: 0,
+    };
+    
+    // Add fade in animation globally
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }`;
+    document.head.appendChild(style);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('lang-selector').value = window.getLang();
+    });
+
+    window.changeLanguage = function() {
+      window.setLang(document.getElementById('lang-selector').value);
+    };
+
+    window.navigateHome = function() { window.location.href = 'index.html'; };
+    window.navigateProgress = function() { window.location.href = 'admin-progress.html'; };
+
+    async function init() {
+      const res = await fetch('config');
+      const config = await res.json();
+      const app = initializeApp(config);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    }
+    await init();
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) { window.location.href = 'login.html'; return; }
+      document.getElementById('nav-name').textContent = `👤 ${localStorage.getItem('gs_name')||user.displayName||'Admin'}`;
+      localStorage.setItem('gs_token', await user.getIdToken(true));
+      await window.loadData();
+    });
+
+    window.loadData = async function() {
+      const token = localStorage.getItem('gs_token');
+      try {
+        const [uRes, aRes] = await Promise.all([
+          fetch('/admin/users', { headers:{ Authorization:`Bearer ${token}` } }),
+          fetch('/admin/analytics', { headers:{ Authorization:`Bearer ${token}` } }),
+        ]);
+
+        if (!uRes.ok) throw new Error('Access denied');
+
+        const { users } = await uRes.json();
+        const analytics = aRes.ok ? await aRes.json() : null;
+
+        if (!users || users.length === 0) {
+          allUsers = [];
+          analyticsData = analytics || EMPTY_ANALYTICS;
+          const now = new Date().toLocaleTimeString('en-IN');
+          document.getElementById('last-refresh').textContent = `Last refreshed at ${now}`;
+          renderOverview();
+          renderUsers(allUsers);
+          renderActivity();
+          document.getElementById('admin-alert').innerHTML = '<div class="alert alert-info">No live users found yet.</div>';
+          return;
+        }
+
+        allUsers = users;
+        analyticsData = analytics || EMPTY_ANALYTICS;
+
+        const now = new Date().toLocaleTimeString('en-IN');
+        document.getElementById('last-refresh').textContent = `Last refreshed at ${now}`;
+
+        renderOverview();
+        renderUsers(allUsers);
+        renderActivity();
+        document.getElementById('admin-alert').innerHTML = '';
+      } catch (err) {
+        allUsers = [];
+        analyticsData = EMPTY_ANALYTICS;
+        renderOverview();
+        renderUsers(allUsers);
+        renderActivity();
+        document.getElementById('admin-alert').innerHTML = `<div class="alert alert-error">Live admin data unavailable: ${err.message}</div>`;
+      }
+    };
+
+    function renderOverview() {
+      const students = allUsers.filter(u=>u.role==='student');
+      const parents = allUsers.filter(u=>u.role==='parent');
+      const admins = allUsers.filter(u=>u.role==='admin');
+      document.getElementById('ov-users').textContent = allUsers.length;
+      document.getElementById('ov-students').textContent = students.length;
+      document.getElementById('ov-parents').textContent = parents.length;
+      document.getElementById('ov-admins').textContent = admins.length;
+      document.getElementById('ov-xp').textContent = analyticsData.totalXPDistributed ?? '—';
+
+      // Breakdown bars
+      const total = allUsers.length || 1;
+      document.getElementById('user-breakdown').innerHTML = [
+        { label:'Students', count:students.length, color:'var(--accent)' },
+        { label:'Parents', count:parents.length, color:'var(--accent2)' },
+        { label:'Admins', count:admins.length, color:'var(--accent3)' },
+      ].map(({ label, count, color }) => `
+        <div style="margin-bottom:12px;">
+          <div class="flex justify-between" style="margin-bottom:4px;font-size:.85rem;">
+            <span>${label}</span><span style="font-weight:700;">${count}</span>
+          </div>
+          <div style="background:var(--bg3);border-radius:50px;height:8px;overflow:hidden;">
+            <div style="width:${Math.round((count/total)*100)}%;height:100%;background:${color};border-radius:50px;transition:width .6s;"></div>
+          </div>
+        </div>`).join('');
+
+      // Build XP Chart
+      const xpLabels = students.map(s => s.name || 'Unknown');
+      const xpData = students.map(s => s.xp || 0);
+
+      const ctx = document.getElementById('xpChart').getContext('2d');
+      if (xpChartInstance) xpChartInstance.destroy();
+      xpChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: xpLabels,
+          datasets: [{
+            label: 'Total XP',
+            data: xpData,
+            backgroundColor: 'rgba(255, 159, 67, 0.7)',
+            borderColor: 'rgba(255, 159, 67, 1)',
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // Find Inactive Students (3+ days)
+      const nowTs = Date.now();
+      const inactive = students.filter(s => !s.lastActive || (nowTs - new Date(s.lastActive).getTime()) > 3 * 24 * 60 * 60 * 1000);
+      
+      let htmlInactive = '';
+      if (inactive.length === 0) {
+        htmlInactive = '<p class="text-muted" style="color:var(--accent2);">✅ All students are active recently.</p>';
+      } else {
+        htmlInactive = inactive.map(s => `
+          <div class="activity-row flex justify-between">
+            <div class="flex items-center gap-2">
+              <div style="width:10px;height:10px;border-radius:50%;background:var(--danger);"></div>
+              <div style="font-weight:600;font-size:1.05rem;">${s.name||'Student'}</div>
+            </div>
+            <div class="text-muted" style="font-size:0.85rem;">Last: ${s.lastActive ? new Date(s.lastActive).toLocaleDateString() : 'Never'}</div>
+          </div>`).join('');
+      }
+      document.getElementById('inactive-students').innerHTML = htmlInactive;
+    }
+
+    // Export CSV Feature
+    window.exportCSV = function() {
+      let csv = 'Name,Email,Role,XP,Level,Last Active\n';
+      allUsers.forEach(u => {
+        csv += `"${u.name||''}","${u.email||''}","${u.role}","${u.xp||0}","${u.level||1}","${u.lastActive||'Never'}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'GramShiksha_Student_Report.csv');
+      a.click();
+    };
+
+    // Firebase Global Announcement
+    window.sendAnnouncement = async function() {
+      const text = document.getElementById('announcement-text').value.trim();
+      const statusEl = document.getElementById('announcement-status');
+      if (!text) {
+        statusEl.innerHTML = '<span style="color:var(--danger)">Please enter a message.</span>';
+        return;
+      }
+      
+      try {
+        statusEl.innerHTML = '<span style="color:var(--text2)">Sending...</span>';
+        await setDoc(doc(db, "announcements", "global"), {
+          message: text,
+          timestamp: Date.now(),
+          author: localStorage.getItem('gs_name') || 'Admin'
+        });
+        statusEl.innerHTML = '<span style="color:var(--accent2)">✅ Announcement published to all students!</span>';
+        document.getElementById('announcement-text').value = '';
+        setTimeout(() => statusEl.innerHTML = '', 4000);
+      } catch (err) {
+        statusEl.innerHTML = `<span style="color:var(--danger)">Error: ${err.message}</span>`;
+      }
+    };
+
+    window.filterUsers = function() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      const role = document.getElementById('role-filter').value;
+      const filtered = allUsers.filter(u => {
+        const matchesQ = (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.includes(q);
+        const matchesR = role === 'all' || u.role === role;
+        return matchesQ && matchesR;
+      });
+      document.getElementById('user-count').textContent = `Showing ${filtered.length} users`;
+      renderUsers(filtered);
+    };
+
+    function renderUsers(users) {
+      const tbody = document.getElementById('users-tbody');
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text2);">No users found.</td></tr>';
+        return;
+      }
+      
+      // Create parent name map
+      const parentMap = {};
+      allUsers.forEach(u => {
+        if (u.role === 'parent') parentMap[u.uid] = u.name || 'Unknown Parent';
+      });
+      
+      const nowTs = Date.now();
+      tbody.innerHTML = users.map((u, i) => {
+        let statusDot = '<div style="width:10px;height:10px;border-radius:50%;background:var(--text2);display:inline-block;margin-right:8px;" title="No Activity Data"></div>';
+        
+        // Color Indicator purely based on lastActive
+        if (u.lastActive) {
+          const daysInactive = (nowTs - new Date(u.lastActive).getTime()) / (1000 * 3600 * 24);
+          if (daysInactive <= 3) {
+            statusDot = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent2);display:inline-block;margin-right:8px;" title="Active recently"></div>'; // Green
+          } else if (daysInactive <= 7) {
+            statusDot = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent3);display:inline-block;margin-right:8px;" title="Inactive > 3 days"></div>'; // Yellow
+          } else {
+            statusDot = '<div style="width:10px;height:10px;border-radius:50%;background:var(--danger);display:inline-block;margin-right:8px;" title="Inactive > 7 days"></div>'; // Red
+          }
+        }
+      
+        let parentCell = '—';
+        if (u.role === 'student') {
+          if (u.parentUid && parentMap[u.parentUid]) {
+            parentCell = `<span style="color:var(--accent2);font-weight:600;">${parentMap[u.parentUid]}</span>`;
+          } else {
+            parentCell = `<button class="btn btn-outline btn-xs" onclick="linkParent('${u.uid}', '${u.name || 'Student'}')" title="Link to parent">🔗 Link</button>`;
+          }
+        } else if (u.role === 'parent') {
+          parentCell = 'N/A';
+        }
+      
+        return `
+          <tr>
+            <td style="color:var(--text2);">${i+1}</td>
+            <td style="font-weight:600;">${statusDot}${u.name||'—'}</td>
+            <td style="color:var(--text2);">${u.email}</td>
+            <td><span class="${ROLE_CLS[u.role]||'badge'}">${u.role}</span></td>
+            <td>${u.grade||'—'}</td>
+            <td>${parentCell}</td>
+            <td style="color:var(--text2);">${u.lastActive?new Date(u.lastActive).toLocaleDateString():'Never'}</td>
+            <td style="font-family:monospace;color:var(--text2);font-size:.8rem;">${u.uid.substring(0,8)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderActivity() {
+      const students = allUsers.filter(u=>u.role==='student');
+
+      // Recently active (sorted by createdAt as proxy — real lastActive needs progress fetch)
+      const recent = [...students]
+        .sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))
+        .slice(0,6);
+      document.getElementById('recent-active').innerHTML = recent.length === 0
+        ? '<p class="text-muted">No students yet.</p>'
+        : recent.map(u=>`<div class="activity-row">
+            <div class="activity-dot"></div>
+            <div><div style="font-weight:600;font-size:.88rem;">${u.name||'Unknown'}</div>
+            <div class="text-muted" style="font-size:.78rem;">Grade ${u.grade||'—'} · Joined ${u.createdAt?new Date(u.createdAt).toLocaleDateString('en-IN'):'—'}</div></div>
+          </div>`).join('');
+
+      // New users (last 5 registrations, any role)
+      const newest = [...allUsers]
+        .sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))
+        .slice(0,5);
+      document.getElementById('new-users').innerHTML = newest.length === 0
+        ? '<p class="text-muted">No registrations yet.</p>'
+        : newest.map((u,i)=>`<div class="flex items-center gap-2" style="padding:8px 0;border-bottom:1px solid var(--border);">
+            <span style="color:var(--text2);font-size:.8rem;width:20px;">${i+1}</span>
+            <div style="flex:1"><div style="font-size:.9rem;font-weight:600;">${u.name||'—'}</div><div class="text-muted" style="font-size:.78rem;">${u.email||'—'}</div></div>
+            <span class="${ROLE_CLS[u.role]||'badge'}">${u.role}</span>
+            <span style="font-size:.78rem;color:var(--text2);">${u.createdAt?new Date(u.createdAt).toLocaleDateString('en-IN'):'—'}</span>
+          </div>`).join('');
+
+      // Top performers placeholder (XP data needs separate Firestore query)
+      document.getElementById('top-performers').innerHTML = `
+        <p class="text-muted" style="font-size:.85rem;margin-bottom:8px;">Students ranked by XP earned</p>
+        ${students.slice(0,5).map((u,i)=>`<div class="activity-row">
+          <span style="width:20px;font-size:.8rem;color:var(--text2);font-weight:700;">${i+1}</span>
+          <div class="activity-dot" style="background:var(--accent3)"></div>
+          <span style="font-size:.88rem;font-weight:600;">${u.name||'Student'}</span>
+          <span class="text-muted" style="font-size:.78rem;margin-left:auto;">Grade ${u.grade||'—'}</span>
+        </div>`).join('') || '<p class="text-muted">No students yet.</p>'}`;
+    }
+
+    window.switchTab = function(tab) {
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      const idx = ['overview','users','activity'].indexOf(tab);
+      document.querySelectorAll('.tab-item')[idx]?.classList.add('active');
+    };
+
+    // Parent-Child Linking
+    let currentStudentUid = null;
+    window.linkParent = function(studentUid, studentName) {
+      currentStudentUid = studentUid;
+      document.getElementById('link-student-name').textContent = `Link student: ${studentName}`;
+      
+      const parentSelect = document.getElementById('parent-select');
+      parentSelect.innerHTML = '<option value="">Choose a parent...</option>';
+      
+      const parents = allUsers.filter(u => u.role === 'parent');
+      parents.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.uid;
+        option.textContent = `${p.name || 'Unknown'} (${p.email})`;
+        parentSelect.appendChild(option);
+      });
+      
+      document.getElementById('link-modal').classList.remove('hidden');
+      document.getElementById('link-alert').innerHTML = '';
+    };
+
+    window.closeModal = function() {
+      document.getElementById('link-modal').classList.add('hidden');
+      currentStudentUid = null;
+    };
+
+    window.confirmLink = async function() {
+      const parentUid = document.getElementById('parent-select').value;
+      if (!parentUid) {
+        document.getElementById('link-alert').innerHTML = '<div class="alert alert-error">Please select a parent.</div>';
+        return;
+      }
+      
+      try {
+        const token = localStorage.getItem('gs_token');
+        const res = await fetch('/auth/link-child', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ parentUid, childUid: currentStudentUid })
+        });
+        
+        if (!res.ok) throw new Error('Failed to link student');
+        
+        document.getElementById('link-alert').innerHTML = '<div class="alert alert-success">✅ Student linked successfully!</div>';
+        setTimeout(() => {
+          closeModal();
+          loadData(); // Refresh the users list
+        }, 1500);
+      } catch (err) {
+        document.getElementById('link-alert').innerHTML = `<div class="alert alert-error">Error: ${err.message}</div>`;
+      }
+    };
+
+    window.logout = async function() { await signOut(auth); localStorage.clear(); window.location.href='login.html'; };
+  </script>
+  <style>@media(max-width:680px){.grid2{grid-template-columns:1fr!important}}</style>
+  <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>

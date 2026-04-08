@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GramShiksha — Topic</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#6c63ff"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    .key-point { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:2px solid var(--border); font-size:1rem; font-weight:600; }
+    .key-point:last-child { border-bottom:none; }
+    .key-dot { color:var(--accent2); font-size:1.4rem; margin-top:2px; flex-shrink:0; font-weight:800; }
+    .example-box { background:var(--bg3); border:3px solid var(--accent); padding:18px 20px; box-shadow:4px 4px 0px var(--border); }
+    .quiz-option { display:flex; align-items:center; gap:16px; padding:16px 20px; background:var(--card); border:3px solid var(--border); cursor:pointer; transition:all .2s; margin-bottom:12px; font-size:1rem; font-weight:700; text-transform:uppercase; box-shadow:2px 2px 0px var(--border); }
+    .quiz-option:hover { border-color:var(--accent); transform:translate(-2px, -2px); box-shadow:4px 4px 0px var(--border); }
+    .quiz-option.selected { border-color:var(--accent); background:var(--accent3); }
+    .quiz-option.correct { border-color:var(--accent2); background:var(--accent2); color:#fff; }
+    .quiz-option.wrong { border-color:var(--danger); background:var(--danger); color:#fff; }
+    .quiz-option .opt-letter { width:40px; height:40px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1rem; flex-shrink:0; color:var(--text); background:var(--bg3); }
+    .q-num { font-size:.9rem; color:var(--text2); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+    .q-text { font-weight:800; margin-bottom:16px; font-size:1.1rem; line-height:1.4; text-transform:uppercase; }
+    .score-circle { width:140px; height:140px; border:4px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; margin:0 auto 20px; font-weight:800; background:var(--accent3); box-shadow:6px 6px 0px var(--border); }
+    .back-btn { display:inline-flex; align-items:center; gap:8px; color:var(--text); font-size:1rem; font-weight:800; margin-bottom:24px; cursor:pointer; padding:12px 24px; background:var(--card); border:3px solid var(--border); transition:all .2s; text-transform:uppercase; box-shadow:2px 2px 0px var(--border); }
+    .back-btn:hover { color:var(--accent); transform:translate(-2px, -2px); box-shadow:4px 4px 0px var(--border); }
+    .navbar { background: linear-gradient(135deg, #ff9f43, #ff7f50); box-shadow: 0 4px 15px rgba(255, 159, 67, 0.2); border: none; padding: 15px 25px; }
+    .navbar-brand { color: white; font-size: 1.6rem; }
+    .navbar-brand span { color: #ffeaa7; }
+    .navbar .btn-outline { border: 2px solid white; color: white; }
+    .navbar .btn-outline:hover { background: white; color: var(--accent); }
+  </style>
+</head>
+<body class="portal-body">
+  <nav class="navbar">
+    <div class="navbar-brand">Gram<span>Shiksha</span></div>
+    <div class="navbar-user" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <select id="lang-selector" class="input input-sm" style="width:auto;padding:5px 10px;font-size:0.9rem;" onchange="changeLanguage()">
+        <option value="en">English</option>
+        <option value="hi">हिंदी</option>
+        <option value="te">తెలుగు</option>
+      </select>
+      <a href="/student.html" class="btn btn-outline btn-sm" data-i18n="backToPortal">← Back to Portal</a>
+      <a href="/index.html" class="btn btn-outline btn-sm">← Home</a>
+    </div>
+  </nav>
+
+  <main class="portal-main" style="max-width:760px;">
+    <div id="loading-state" style="text-align:center;padding:60px;color:var(--text2);" data-i18n="loadingTopic">Loading topic...</div>
+
+    <!-- LESSON VIEW -->
+    <div id="lesson-view" class="hidden">
+      <div class="back-btn" onclick="window.location.href='/student.html'" data-i18n="backToLesson">← Back to Dashboard</div>
+      <div style="margin-bottom:8px;" id="topic-subject-badge"></div>
+      <h1 id="topic-title" style="font-size:2.2rem;margin-bottom:8px;color:var(--text);font-weight:800;"></h1>
+      <p id="topic-intro" class="text-muted" style="margin-bottom:30px;font-size:1.15rem;line-height:1.7;"></p>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" data-i18n="keyPoints">📌 Key Points</div>
+        <div id="key-points-list"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" data-i18n="realLifeExample">💡 Real-Life Example</div>
+        <div class="example-box">
+          <p id="topic-example" style="font-size:.95rem;line-height:1.7;"></p>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:30px;">
+        <button class="btn btn-primary" id="start-quiz-btn" onclick="showQuiz()" style="padding:16px 40px;font-size:1.15rem;border-radius:50px;" data-i18n="startQuiz">
+          📝 Start Quiz →
+        </button>
+      </div>
+    </div>
+
+    <!-- QUIZ VIEW -->
+    <div id="quiz-view" class="hidden">
+      <div class="back-btn" onclick="showLesson()" data-i18n="backToLesson">← Back to Lesson</div>
+      <h2 style="margin-bottom:4px;">Quiz: <span id="quiz-topic-name"></span></h2>
+      <p class="text-muted" style="margin-bottom:24px;" data-i18n="quizInstructions">Answer all 5 questions, then submit.</p>
+
+      <div id="quiz-questions"></div>
+
+      <div id="quiz-footer" style="text-align:center;margin-top:20px;">
+        <button class="btn btn-primary" id="submit-btn" onclick="submitQuiz()" style="padding:12px 36px;" data-i18n="submitAnswers">Submit Answers</button>
+        <div id="quiz-alert" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- RESULTS -->
+      <div id="quiz-results" class="hidden card" style="margin-top:24px;text-align:center;">
+        <div class="score-circle" id="score-circle"></div>
+        <h3 id="score-msg" style="margin-bottom:8px;"></h3>
+        <p class="text-muted" id="score-sub" style="margin-bottom:20px;"></p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-outline" onclick="retryQuiz()" data-i18n="retryQuiz">🔄 Retry Quiz</button>
+          <button class="btn btn-success" id="complete-btn" onclick="markComplete()" data-i18n="markTopicComplete">✅ Mark Topic Complete</button>
+        </div>
+        <div id="complete-alert" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/i18n.js?v=5"></script>
+  <script src="/js/topics-data.js?v=5"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.getLang) {
+        document.getElementById('lang-selector').value = window.getLang();
+        applyLang(window.getLang());
+      }
+    });
+    window.changeLanguage = function() {
+      window.setLang(document.getElementById('lang-selector').value);
+    };
+  </script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+    let auth, currentUser, topicData, userAnswers = {}, quizSubmitted = false, finalScore = 0;
+
+    const params = new URLSearchParams(location.search);
+    const grade = params.get('grade') || '6';
+    const topicIdx = parseInt(params.get('idx') || '0');
+
+    async function init() {
+      const res = await fetch('/config');
+      const config = await res.json();
+      const app = initializeApp(config);
+      auth = getAuth(app);
+      onAuthStateChanged(auth, u => {
+        if (!u) { window.location.href = '/login.html'; return; }
+        currentUser = u;
+        u.getIdToken(true).then(t => localStorage.setItem('gs_token', t));
+        loadTopic();
+      });
+    }
+    await init();
+
+    function loadTopic() {
+      const gradeTopics = TOPICS_DATA[grade];
+      if (!gradeTopics || !gradeTopics[topicIdx]) {
+        document.getElementById('loading-state').textContent = window.T ? window.T('topicNotFound') : 'Topic not found.';
+        return;
+      }
+      topicData = gradeTopics[topicIdx];
+      renderLesson();
+    }
+
+    function renderLesson() {
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('lesson-view').classList.remove('hidden');
+      document.getElementById('topic-title').textContent = topicData.name;
+      document.getElementById('topic-intro').textContent = topicData.intro;
+      document.getElementById('topic-example').textContent = topicData.example;
+      document.getElementById('topic-subject-badge').innerHTML =
+        `<span class="badge badge-green">${topicData.icon} ${topicData.subject}</span>`;
+      document.getElementById('key-points-list').innerHTML =
+        topicData.keyPoints.map(p =>
+          `<div class="key-point"><span class="key-dot">✦</span><span>${p}</span></div>`
+        ).join('');
+    }
+
+    window.showQuiz = function() {
+      document.getElementById('lesson-view').classList.add('hidden');
+      document.getElementById('quiz-view').classList.remove('hidden');
+      document.getElementById('quiz-topic-name').textContent = topicData.name;
+      userAnswers = {}; quizSubmitted = false;
+      document.getElementById('quiz-results').classList.add('hidden');
+      document.getElementById('submit-btn').classList.remove('hidden');
+      renderQuestions();
+    };
+
+    window.showLesson = function() {
+      document.getElementById('quiz-view').classList.add('hidden');
+      document.getElementById('lesson-view').classList.remove('hidden');
+    };
+
+    function renderQuestions() {
+      const LETTERS = ['A','B','C','D'];
+      document.getElementById('quiz-questions').innerHTML = topicData.quiz.map((q, qi) =>
+        `<div class="card" style="margin-bottom:16px;">
+          <div class="q-num">Question ${qi+1} of ${topicData.quiz.length}</div>
+          <div class="q-text">${q.q}</div>
+          <div>
+            ${q.opts.map((opt, oi) =>
+              `<div class="quiz-option" id="opt-${qi}-${oi}" onclick="selectOption(${qi},${oi})">
+                <div class="opt-letter">${LETTERS[oi]}</div>
+                <span>${opt}</span>
+              </div>`
+            ).join('')}
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    window.selectOption = function(qi, oi) {
+      if (quizSubmitted) return;
+      // Deselect others in same question
+      for (let i = 0; i < 4; i++) {
+        const el = document.getElementById(`opt-${qi}-${i}`);
+        if (el) el.classList.remove('selected');
+      }
+      document.getElementById(`opt-${qi}-${oi}`).classList.add('selected');
+      userAnswers[qi] = oi;
+    };
+
+    window.submitQuiz = function() {
+      if (Object.keys(userAnswers).length < topicData.quiz.length) {
+        document.getElementById('quiz-alert').innerHTML =
+          `<div class="alert alert-error">${window.T ? window.T('answerAllQuestions') : 'Please answer all questions before submitting.'}</div>`;
+        return;
+      }
+      document.getElementById('quiz-alert').innerHTML = '';
+      quizSubmitted = true;
+
+      let correct = 0;
+      topicData.quiz.forEach((q, qi) => {
+        const chosen = userAnswers[qi];
+        const isCorrect = chosen === q.ans;
+        if (isCorrect) correct++;
+        // Highlight correct/wrong
+        for (let oi = 0; oi < q.opts.length; oi++) {
+          const el = document.getElementById(`opt-${qi}-${oi}`);
+          if (!el) continue;
+          if (oi === q.ans) el.classList.add('correct');
+          else if (oi === chosen && !isCorrect) el.classList.add('wrong');
+          el.classList.remove('selected');
+        }
+      });
+
+      finalScore = Math.round((correct / topicData.quiz.length) * 100);
+      document.getElementById('submit-btn').classList.add('hidden');
+      showResults(correct);
+    };
+
+    function showResults(correct) {
+      const res = document.getElementById('quiz-results');
+      res.classList.remove('hidden');
+      res.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      const circle = document.getElementById('score-circle');
+      const passed = finalScore >= 60;
+      circle.style.background = passed
+        ? 'rgba(72,207,173,0.15)' : 'rgba(252,92,101,0.15)';
+      circle.style.border = `4px solid ${passed ? 'var(--accent2)' : 'var(--danger)'}`;
+      circle.style.color = passed ? 'var(--accent2)' : 'var(--danger)';
+      circle.innerHTML = `<div style="font-size:1.6rem;">${finalScore}%</div><div style="font-size:.7rem;margin-top:2px;">${correct}/${topicData.quiz.length}</div>`;
+
+      document.getElementById('score-msg').textContent = passed
+        ? (window.T ? window.T('greatJob') : '🎉 Great Job!')
+        : (window.T ? window.T('keepPracticing') : '💪 Keep Practicing!');
+      document.getElementById('score-sub').textContent = passed
+        ? `You scored ${finalScore}%. You can now mark this topic complete!`
+        : `You scored ${finalScore}%. Review the lesson and try again to pass (60% needed).`;
+
+      document.getElementById('complete-btn').disabled = !passed;
+      if (!passed) {
+        document.getElementById('complete-btn').style.opacity = '0.4';
+        document.getElementById('complete-btn').title = 'Score at least 60% to complete';
+      }
+    }
+
+    window.retryQuiz = function() {
+      quizSubmitted = false; userAnswers = {};
+      document.getElementById('quiz-results').classList.add('hidden');
+      document.getElementById('submit-btn').classList.remove('hidden');
+      renderQuestions();
+    };
+
+    window.markComplete = async function() {
+      const btn = document.getElementById('complete-btn');
+      btn.disabled = true; btn.textContent = '⏳ Saving...';
+      const token = localStorage.getItem('gs_token');
+
+      try {
+        const res = await fetch('/progress/update', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+          body: JSON.stringify({ uid: currentUser.uid, topicId: topicData.name, quizScore: finalScore })
+        });
+        if (!res.ok) throw new Error('Failed');
+        const { xpAwarded, stats } = await res.json();
+
+        // Update cache
+        const cached = localStorage.getItem('gs_progress_cache');
+        if (cached) {
+          const data = JSON.parse(cached);
+          data.progress.completedTopics = [...new Set([...(data.progress.completedTopics||[]), topicData.name])];
+          data.progress.quizScores = { ...(data.progress.quizScores||{}), [topicData.name]: finalScore };
+          if (stats) data.stats = stats;
+          localStorage.setItem('gs_progress_cache', JSON.stringify(data));
+        }
+
+        document.getElementById('complete-alert').innerHTML =
+          `<div class="alert alert-success">✅ ${window.T ? window.T('topicComplete') : 'Topic complete!'} +${xpAwarded} XP earned. Redirecting...</div>`;
+        setTimeout(() => { window.location.href = '/student.html?tab=topics'; }, 1800);
+      } catch {
+        document.getElementById('complete-alert').innerHTML =
+          '<div class="alert alert-error">Failed to save. Please try again.</div>';
+        btn.disabled = false; btn.textContent = window.T ? window.T('markTopicComplete') : '✅ Mark Topic Complete';
+      }
+    };
+
+    // Auto-clear stubborn PWA caches
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) { registration.unregister(); }
+      });
+      caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+      });
+      setTimeout(() => {
+        navigator.serviceWorker.register('/sw.js?v=' + Date.now()).catch(() => {});
+        if (!window.location.search.includes('refreshed=1')) {
+          const newUrl = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'refreshed=1';
+          window.location.replace(newUrl);
+        }
+      }, 500);
+    }
+  </script>
+</body>
+</html>

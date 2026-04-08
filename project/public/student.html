@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GramShiksha — Student Portal</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#6c63ff"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    .tab-bar { display:flex; background:var(--bg2); border-bottom:3px solid var(--border); padding:0 20px; position:sticky; top:60px; z-index:90; }
+    .tab-item { padding:14px 20px; cursor:pointer; font-weight:800; font-size:.95rem; color:var(--text2); border-bottom:3px solid transparent; transition:all .2s; white-space:nowrap; text-transform:uppercase; }
+    .tab-item.active { color:var(--accent); border-bottom-color:var(--accent); background: transparent; }
+    .tab-item:hover { color:var(--accent); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .topic-card { display:flex; align-items:center; gap:14px; background:var(--card); border:3px solid var(--border); padding:18px 20px; cursor:pointer; transition:all .2s; text-decoration:none; color:var(--text); box-shadow:4px 4px 0px var(--border); }
+    .topic-card:hover { border-color:var(--accent); transform:translate(-2px, -2px); box-shadow:6px 6px 0px var(--accent); }
+    .topic-card.done { border-color:var(--accent2); background:var(--accent2); }
+    .topic-icon { font-size:2.2rem; flex-shrink:0; }
+    .topic-info { flex:1; }
+    .topic-info h4 { font-size:1.1rem; font-weight:800; margin-bottom:4px; color:var(--text); text-transform:uppercase; }
+    .topic-info span { font-size:.9rem; color:var(--text2); font-weight:600; }
+    .topic-status { font-size:.9rem; font-weight:700; padding:6px 14px; text-transform:uppercase; background:var(--bg3); color:var(--text); border:2px solid var(--border); }
+    .topic-card.done .topic-status { background:var(--accent2); color:var(--text); border-color:var(--border); }
+  </style>
+  <style>
+    .btn-sm { padding: 8px 16px; font-size: 1rem; }
+    .btn-primary { background: linear-gradient(135deg, #ff9f43, #feca57); border: none; box-shadow: 0 6px 20px rgba(255, 159, 67, 0.4); color: white; }
+    .btn-primary:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 10px 25px rgba(255, 159, 67, 0.6); }
+
+    /* Navbar */
+    .navbar { background: linear-gradient(135deg, #ff9f43, #ff7f50); box-shadow: 0 4px 15px rgba(255, 159, 67, 0.2); border: none; padding: 15px 25px; }
+    .navbar-brand { color: white; font-size: 1.6rem; }
+    .navbar-brand span { color: #ffeaa7; }
+    .navbar-user { color: white; font-size: 1.1rem; font-weight: 600; }
+    .navbar .btn-outline { border: 2px solid white; color: white; }
+    .navbar .btn-outline:hover { background: white; color: var(--accent); }
+    .navbar select { background: rgba(255,255,255,0.2) !important; color: white !important; border: 1px solid rgba(255,255,255,0.5) !important; }
+    .navbar select option { color: var(--text); }
+
+    /* Tab Bar */
+    .tab-bar { background: white; border-bottom: 2px solid var(--border); padding: 0; justify-content: space-around; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+    .tab-item { padding: 18px 10px; font-size: 1.15rem; flex: 1; text-align: center; border-bottom: 4px solid transparent; }
+    .tab-item.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(255, 159, 67, 0.05); }
+
+    /* Content Area Layout */
+    .portal-main { max-width: 1000px; padding: 30px; }
+
+    /* Welcome Banner */
+    .welcome-banner {
+      background: linear-gradient(135deg, #fffbf0, #ffeaa7);
+      border: 3px solid #ff9f43;
+      border-radius: 20px;
+      padding: 24px 30px;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      box-shadow: 0 8px 25px rgba(255, 159, 67, 0.15);
+    }
+    .welcome-banner h1 { font-size: 2.2rem; color: #d35400; margin-bottom: 6px; }
+    .welcome-banner p { font-size: 1.2rem; color: #e67e22; font-weight: 600; margin: 0; }
+    .welcome-icon { font-size: 4.5rem; line-height: 1; }
+
+    /* Cards & Hover Lift */
+    .card { background: white; border-radius: 20px; border: 2px solid var(--border); padding: 28px; box-shadow: 0 6px 20px rgba(0,0,0,0.04); transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.3s; }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(255, 159, 67, 0.15); border-color: var(--accent); }
+
+    /* Colorful Stat Cards */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { border: none; padding: 24px; text-align: center; color: white; transform: translateY(0); transition: transform 0.3s; }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-card:nth-child(1) { background: linear-gradient(135deg, #ff9f43, #ff7f50); box-shadow: 0 4px 15px rgba(255, 159, 67, 0.3); }
+    .stat-card:nth-child(2) { background: linear-gradient(135deg, #feca57, #ff9f43); box-shadow: 0 4px 15px rgba(254, 202, 87, 0.3); }
+    .stat-card:nth-child(3) { background: linear-gradient(135deg, #1dd1a1, #10ac84); box-shadow: 0 4px 15px rgba(29, 209, 161, 0.3); }
+    .stat-card:nth-child(4) { background: linear-gradient(135deg, #5f27cd, #341f97); box-shadow: 0 4px 15px rgba(95, 39, 205, 0.3); }
+    .stat-card .stat-value { color: white; font-size: 2.5rem; font-weight: 800; margin-bottom: 4px; }
+    .stat-card .stat-label { color: rgba(255,255,255,0.9); font-size: 1.05rem; font-weight: 600; }
+
+    /* Progress Bar */
+    .xp-bar-wrap { height: 18px; background: rgba(0,0,0,0.05); }
+    .xp-bar {
+      background: linear-gradient(90deg, #feca57, #ff9f43, #ff7f50);
+      background-size: 200% 200%;
+      animation: gradientMove 2s ease infinite;
+    }
+    @keyframes gradientMove { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+    /* Interactive Cards */
+    .card[onclick] { border: 2px solid var(--border); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .card[onclick]:hover { border-color: var(--accent); transform: translateY(-8px); box-shadow: 0 12px 30px rgba(255, 159, 67, 0.2); }
+    .card[onclick] h3 { font-size: 1.3rem; color: var(--text); }
+    .card[onclick] p { font-size: 1rem; color: var(--text2); }
+
+    /* POPUPS & ANIMATIONS injected by JS */
+    body.portal-body { animation: fadeIn 0.8s ease-in-out; }
+    @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+    
+    .anim-popup { position:fixed; bottom:100px; right:30px; background:linear-gradient(135deg, #1dd1a1, #10ac84); color:white; padding:15px 25px; border-radius:30px; font-weight:800; font-size:1.2rem; box-shadow:0 10px 25px rgba(29, 209, 161, 0.4); animation:slideUpFade 2.5s forwards; z-index:100; pointer-events:none; }
+    .anim-popup-badge { background:linear-gradient(135deg, #feca57, #ff9f43); color:white; }
+    @keyframes slideUpFade { 0%{opacity:0; transform:translateY(30px) scale(0.9)} 15%{opacity:1; transform:translateY(0) scale(1)} 85%{opacity:1; transform:translateY(0) scale(1)} 100%{opacity:0; transform:translateY(-30px) scale(0.9)} }
+
+    .user-avatar { width:40px; height:40px; border-radius:50%; background:white; color:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.2rem; border:2px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.1); flex-shrink:0; }
+
+    .confetti { position:fixed; width:10px; height:10px; background-color:#feca57; opacity:0; z-index:99; pointer-events:none; }
+    @keyframes confetti-fall { 0%{ transform:translateY(-10vh) rotate(0deg); opacity:1; } 100%{ transform:translateY(110vh) rotate(720deg); opacity:0; } }
+
+    /* Leaderboard CSS */
+    .leaderboard-card { background: linear-gradient(135deg, rgba(255,255,255,0.95), #ffffff); }
+    .lb-row { display:flex; align-items:center; padding:12px 0; border-bottom:1px solid rgba(0,0,0,0.05); gap:12px; }
+    .lb-row:last-child { border-bottom:none; }
+    .lb-rank { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; background:var(--bg2); color:var(--text); font-size:0.95rem; }
+    .lb-rank-1 { background:linear-gradient(135deg, #feca57, #ff9f43); color:white; box-shadow:0 2px 8px rgba(254,202,87,0.4); transform:scale(1.1); }
+    .lb-rank-2 { background:linear-gradient(135deg, #bdc3c7, #95a5a6); color:white; }
+    .lb-rank-3 { background:linear-gradient(135deg, #cd6133, #b33939); color:white; }
+
+    /* Mobile Nav & Floating Button */
+    .bottom-nav { display:none; position:fixed; bottom:0; left:0; width:100%; background:white; box-shadow:0 -4px 15px rgba(0,0,0,0.05); z-index:100; justify-content:space-around; align-items:center; padding:12px 0; border-top:2px solid var(--border); }
+    .bottom-nav div { text-align:center; font-size:1.6rem; cursor:pointer; flex:1; transition:transform 0.2s; }
+    .bottom-nav div:hover { transform:scale(1.1); color:var(--accent); }
+    .bottom-nav div span { display:block; font-size:0.75rem; font-weight:700; color:var(--text2); margin-top:4px; }
+    
+    .floating-ai-btn { position:fixed; bottom:30px; right:30px; width:65px; height:65px; border-radius:50%; background:linear-gradient(135deg, #1dd1a1, #10ac84); border:none; box-shadow:0 8px 25px rgba(29, 209, 161, 0.4); font-size:2.2rem; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:90; transition:all 0.3s; color:white; }
+    .floating-ai-btn:hover { transform:translateY(-5px) scale(1.05); box-shadow:0 12px 30px rgba(29, 209, 161, 0.6); }
+
+    @media(max-width:768px) {
+      .tab-bar { display:none !important; }
+      .bottom-nav { display:flex; }
+      .portal-main { padding-bottom:80px; }
+      .floating-ai-btn { bottom: 90px; right: 20px; }
+    }
+
+    /* Inputs */
+    .input { padding: 14px 18px; font-size: 1.1rem; border: 2px solid #dfe6e9; border-radius: 12px; background: white; }
+    .input:focus { border-color: var(--accent); }
+
+    /* Chat UI */
+    .chat-box { background: white; border: 2px solid var(--border); padding: 24px; border-radius: 20px; min-height: 400px; }
+    .msg { font-size: 1.15rem; padding: 14px 20px; border-radius: 18px; margin-bottom: 12px; max-width: 85%; line-height: 1.5; }
+    .msg-user { background: var(--accent); color: white; border-bottom-right-radius: 4px; margin-left: auto; }
+    .msg-ai { background: var(--bg); border: 2px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+  </style>
+</head>
+<body class="portal-body">
+  <div id="offline-banner" class="offline-banner hidden">📶 Offline — showing cached data</div>
+
+  <nav class="navbar">
+    <div class="navbar-brand">
+      Gram<span>Shiksha</span>
+      <button class="btn btn-outline btn-sm" onclick="navigateHome()" style="margin-left:14px;">← Home</button>
+    </div>
+    <div class="navbar-user flex items-center gap-3">
+      <select id="lang-selector" class="input input-sm" style="width:auto;padding:5px 10px;font-size:0.9rem;" onchange="changeLanguage()">
+        <option value="en">English</option>
+        <option value="hi">हिंदी (Hindi)</option>
+        <option value="te">తెలుగు (Telugu)</option>
+      </select>
+      <span id="nav-name">...</span>
+      <button class="btn btn-outline btn-sm" onclick="logout()" data-i18n="logout">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('dashboard')" data-i18n="dashboard">📊 Dashboard</div>
+    <div class="tab-item" onclick="switchTab('topics')" data-i18n="topics">📚 Topics</div>
+    <div class="tab-item" onclick="switchTab('ai')" data-i18n="askAi">🤖 Ask AI</div>
+  </div>
+
+  <main class="portal-main">
+
+    <!-- ══════════ DASHBOARD TAB ══════════ -->
+    <div id="tab-dashboard" class="tab-panel active">
+      
+      <!-- Welcome Banner -->
+      <div class="welcome-banner">
+        <div class="welcome-icon">👋</div>
+        <div class="welcome-text">
+          <h1 style="font-size: 2.2rem; color: #d35400; margin-bottom: 6px;">Namaste, <span id="welcome-name" style="color:var(--accent);">Student</span>!</h1>
+          <p>Welcome to GramShiksha. Ready to learn and play today?</p>
+        </div>
+      </div>
+
+      <!-- Daily Quote -->
+      <div class="card" style="margin-bottom:30px;text-align:center;background:linear-gradient(135deg,#fffbf0,#ffffff);">
+        <h3 style="color:#d35400;margin-bottom:8px;font-size:1.15rem;">💬 Daily Motivation</h3>
+        <p id="hindi-quote" style="font-size:1.3rem;font-weight:700;color:var(--text);font-style:italic;line-height:1.5;">...</p>
+      </div>
+
+      <!-- Announcement Banner -->
+      <div id="admin-announcement" class="card" style="display:none; margin-bottom: 30px; border-left: 4px solid var(--accent); background: rgba(255, 159, 67, 0.05); animation: fadeIn 0.5s;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-size:.85rem; font-weight:800; color:var(--accent); text-transform:uppercase; margin-bottom:6px;">📢 School Announcement</div>
+            <div id="announcement-content" style="font-size:1.05rem; font-weight:600; color:var(--text);"></div>
+            <div id="announcement-meta" style="font-size:0.8rem; color:var(--text2); margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level & XP -->
+      <div class="card" style="margin-bottom:30px;">
+        <div class="flex items-center justify-between" style="margin-bottom:12px;">
+          <div>
+            <div style="font-size:1.5rem;font-weight:800;"><span data-i18n="level">Level</span> <span id="d-level">1</span></div>
+            <div class="text-muted" id="d-xp-label">0 / 100 XP to next level</div>
+          </div>
+          <div id="d-badges" class="flex gap-1" style="flex-wrap:wrap;justify-content:flex-end;max-width:55%;"></div>
+        </div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar" id="d-xp-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-value" id="d-stat-xp">0</div><div class="stat-label" data-i18n="totalXP">Total XP</div></div>
+        <div class="stat-card"><div class="stat-value" id="d-stat-streak">0</div><div class="stat-label" data-i18n="streak">Day Streak 🔥</div></div>
+        <div class="stat-card"><div class="stat-value" id="d-stat-topics">0</div><div class="stat-label" data-i18n="topicsDone">Topics Done</div></div>
+        <div class="stat-card"><div class="stat-value" id="d-stat-badges">0</div><div class="stat-label" data-i18n="badges">Badges</div></div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div class="card" style="cursor:pointer;" onclick="switchTab('topics')">
+          <div style="font-size:2rem;margin-bottom:8px;">📚</div>
+          <h3 style="font-size:1rem;margin-bottom:4px;" data-i18n="studyTopic">Study a Topic</h3>
+          <p class="text-muted" style="font-size:.85rem;" data-i18n="studyTopicSub">Learn and earn XP</p>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="switchTab('ai')">
+          <div style="font-size:2rem;margin-bottom:8px;">🤖</div>
+          <h3 style="font-size:1rem;margin-bottom:4px;" data-i18n="askAiTutor">Ask AI Tutor</h3>
+          <p class="text-muted" style="font-size:.85rem;" data-i18n="askAiSub">+10 XP per question</p>
+        </div>
+      </div>
+
+      <!-- Recent Quiz Scores -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" data-i18n="recentQuiz">🏆 Recent Quiz Scores</div>
+        <div id="d-quiz-scores"><p class="text-muted">Complete topics to see scores here.</p></div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="card leaderboard-card">
+        <div class="section-title">🌟 Top 5 Students</div>
+        <div id="leaderboard-list">
+          <p class="text-muted">Loading leaderboard...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ TOPICS TAB ══════════ -->
+    <div id="tab-topics" class="tab-panel">
+      <div class="flex items-center justify-between" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="margin-bottom:2px;" id="t-heading">Grade <span id="t-grade-display">6</span> Subjects</h2>
+          <p class="text-muted" style="font-size:.85rem;" id="t-progress-text">Loading...</p>
+        </div>
+        <div class="flex gap-2 items-center" style="flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline btn-sm hidden" id="back-to-subjects" onclick="showSubjects()" data-i18n="allSubjects">← All Subjects</button>
+          <select id="gradeDropdown" style="width:auto;padding:8px 14px;" onchange="switchGrade()">
+            <option value="Grade 2">Grade 2</option><option value="Grade 3">Grade 3</option>
+            <option value="Grade 4">Grade 4</option><option value="Grade 5">Grade 5</option>
+            <option value="Grade 6">Grade 6</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Subject Cards View -->
+      <div id="subjects-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;"></div>
+
+      <!-- Topics in Subject View -->
+      <div id="topics-grid" class="hidden" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <!-- ══════════ AI CHAT TAB ══════════ -->
+    <div id="tab-ai" class="tab-panel">
+      <h2 style="margin-bottom:4px;" data-i18n="askAi">AI Study Buddy 🤖</h2>
+      <p class="text-muted" style="margin-bottom:16px;font-size:.88rem;" data-i18n="askAiSub">Ask any question — earn +10 XP per question!</p>
+      <div class="chat-box" id="chat-box">
+        <!-- Initialized by JS -->
+      </div>
+      <div class="chat-input-row" style="margin-top:12px;">
+        <input type="text" id="chat-input" data-i18n="aiPlaceholder" placeholder="Type your question here..." onkeydown="if(event.key==='Enter')sendQuestion()"/>
+        <button class="btn btn-primary" id="send-btn" onclick="sendQuestion()" data-i18n="aiAsk">Ask ✦</button>
+      </div>
+      <div id="ai-alert"></div>
+    </div>
+
+  </main>
+
+  <!-- Mobile Bottom Nav -->
+  <div class="bottom-nav">
+    <div onclick="switchTab('dashboard')">📊<span>Dashboard</span></div>
+    <div onclick="switchTab('topics')">📚<span>Topics</span></div>
+    <div onclick="switchTab('ai')">🤖<span>Ask AI</span></div>
+  </div>
+
+  <!-- Floating Ask AI Button -->
+  <button class="floating-ai-btn" onclick="switchTab('ai')">🤖</button>
+
+  <script src="/js/i18n.js?v=5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="/js/topics-data.js?v=5"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    let auth, db, dailyQuoteIdx = Math.floor(Math.random() * 10);
+    let currentUser, chatHistory = [], userGrade = '6';
+    let selectedGrade = 'Grade 6'; // Central state for selected grade
+    window.currentSubject = null;
+
+    window.data = {
+      "Grade 6": {
+        subjects: ["Maths", "Science", "History"],
+        topics: {
+          Maths: ["Integers"],
+          Science: ["Plants"],
+          History: ["Ancient"]
+        }
+      },
+      "Grade 3": {
+        subjects: ["Maths", "EVS"],
+        topics: {
+          Maths: ["Addition", "Subtraction"],
+          EVS: ["Animals"]
+        }
+      }
+    };
+
+    if (typeof TOPICS_DATA !== 'undefined') {
+      Object.keys(TOPICS_DATA).forEach(grade => {
+        const topics = TOPICS_DATA[grade] || [];
+        const subjects = {};
+        topics.forEach(t => {
+          const subj = t.subject || 'General';
+          if (!subjects[subj]) subjects[subj] = [];
+          subjects[subj].push(t.name || t.topic || 'Unknown');
+        });
+        window.data[`Grade ${grade}`] = { subjects: Object.keys(subjects), topics: subjects };
+      });
+    }
+
+    function formatGrade(grade) {
+      if (typeof grade === 'string' && grade.startsWith('Grade ')) {
+        return grade;
+      }
+      return `Grade ${normalizeGrade(String(grade))}`;
+    }
+
+    function updateSubjectsUI() {
+      const gradeKey = formatGrade(window.selectedGrade || selectedGrade);
+      window.selectedGrade = gradeKey;
+      window.currentSubject = null;
+      const subjectsGrid = document.getElementById('subjects-grid');
+      const topicsGrid = document.getElementById('topics-grid');
+      const backBtn = document.getElementById('back-to-subjects');
+      const heading = document.getElementById('t-heading');
+      const gradeDisplay = document.getElementById('t-grade-display');
+      const progressText = document.getElementById('t-progress-text');
+
+      subjectsGrid.innerHTML = '';
+      const subjects = window.data[gradeKey]?.subjects || [];
+
+      if (subjects.length === 0) {
+        subjectsGrid.innerHTML = '<p class="text-muted">No subjects found for this grade yet.</p>';
+      } else {
+        subjects.forEach(subject => {
+          const card = document.createElement('div');
+          card.className = 'subject-card';
+          card.innerHTML = `
+            <div style="font-size:2rem;margin-bottom:8px;">📚</div>
+            <div style="font-weight:700;font-size:.92rem;margin-bottom:4px;">${subject}</div>
+          `;
+          card.addEventListener('click', () => updateTopics(subject));
+          subjectsGrid.appendChild(card);
+        });
+      }
+
+      topicsGrid.classList.add('hidden');
+      topicsGrid.style.display = 'none';
+      backBtn.classList.add('hidden');
+      subjectsGrid.style.display = 'grid';
+      heading.innerHTML = `Grade <span id="t-grade-display">${normalizeGrade(gradeKey)}</span> Subjects`;
+      gradeDisplay.textContent = normalizeGrade(gradeKey);
+      if (progressText) {
+        progressText.textContent = 'Select a subject to continue.';
+      }
+    }
+
+    function updateContent() {
+      updateSubjectsUI();
+      if (window.currentSubject) {
+        updateTopics(window.currentSubject);
+      }
+    }
+
+    function updateTopics(subject) {
+      if (!subject) return;
+      window.currentSubject = subject;
+      const gradeKey = formatGrade(window.selectedGrade || selectedGrade);
+      const topicsGrid = document.getElementById('topics-grid');
+      const subjectsGrid = document.getElementById('subjects-grid');
+      const backBtn = document.getElementById('back-to-subjects');
+      const heading = document.getElementById('t-heading');
+      const gradeDisplay = document.getElementById('t-grade-display');
+      const progressText = document.getElementById('t-progress-text');
+
+      topicsGrid.innerHTML = '';
+      const topics = window.data[gradeKey]?.topics?.[subject] || [];
+
+      if (topics.length === 0) {
+        topicsGrid.innerHTML = '<p class="text-muted">No topics available for this subject.</p>';
+      } else {
+        topics.forEach(topic => {
+          const div = document.createElement('div');
+          div.className = 'topic-card';
+          div.innerHTML = `
+            <div class="topic-icon">📖</div>
+            <div class="topic-info">
+              <h4>${topic}</h4>
+              <span>${subject}</span>
+            </div>
+            <div class="topic-status">→ Start</div>
+          `;
+          div.addEventListener('click', () => {
+            window.location.href = `/topic.html?grade=${normalizeGrade(gradeKey)}&subject=${encodeURIComponent(subject)}&topic=${encodeURIComponent(topic)}`;
+          });
+          topicsGrid.appendChild(div);
+        });
+      }
+
+      subjectsGrid.style.display = 'none';
+      topicsGrid.classList.remove('hidden');
+      topicsGrid.style.display = 'flex';
+      backBtn.classList.remove('hidden');
+      heading.innerHTML = `${subject} Topics`;
+      gradeDisplay.textContent = normalizeGrade(gradeKey);
+      if (progressText) {
+        progressText.textContent = `${topics.length} topics available`;
+      }
+    }
+
+    window.openSubject = function(subject) {
+      updateTopics(subject);
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Page Loaded');
+      document.getElementById('lang-selector').value = window.getLang();
+
+      document.querySelectorAll('p').forEach(p => {
+        if (/loading/i.test(p.innerText)) {
+          p.style.display = 'none';
+        }
+      });
+
+      // Attach event listeners
+      const gradeDropdown = document.getElementById('gradeDropdown');
+      if (gradeDropdown) {
+        gradeDropdown.addEventListener('change', (e) => {
+          selectedGrade = e.target.value;
+          window.selectedGrade = selectedGrade;
+          console.log('Grade changed:', window.selectedGrade);
+          updateContent();
+        });
+      }
+
+      const backToSubjectsBtn = document.getElementById('back-to-subjects');
+      if (backToSubjectsBtn) {
+        backToSubjectsBtn.addEventListener('click', () => {
+          console.log('Back to subjects clicked');
+          showSubjects();
+        });
+      }
+
+      // render subjects immediately on page load
+      updateContent();
+    });
+
+    window.changeLanguage = function() {
+      window.setLang(document.getElementById('lang-selector').value);
+      initAIChat(); // update greeting language
+    };
+
+    const BADGE_NAMES = {
+      first_question:'🌟 First Q', curious_learner:'🔍 Curious',
+      rising_star:'⭐ Rising Star', knowledge_seeker:'📖 Seeker', scholar:'🎓 Scholar'
+    };
+
+    window.addEventListener('offline', () => document.getElementById('offline-banner').classList.remove('hidden'));
+    window.addEventListener('online', () => document.getElementById('offline-banner').classList.add('hidden'));
+
+    const hindiQuotes = [
+      "शिक्षा सबसे सशक्त हथियार है जिससे आप दुनिया को बदल सकते हैं।",
+      "सफलता की कुंजी कड़ी मेहनत और निरंतरता में है।",
+      "ज्ञान वह निवेश है जिसका मुनाफा जीवन भर मिलता है।",
+      "हर दिन कुछ नया सीखने का अवसर होता है।",
+      "गलतियां इस बात का प्रमाण हैं कि आप प्रयास कर रहे हैं।",
+      "सफलता पहले से की गई तैयारी पर निर्भर करती है।",
+      "विश्वास वह शक्ति है जो उजड़े हुए विश्व में भी प्रकाश ला सकती है।",
+      "जो समय बर्बाद करता है, समय उसे बर्बाद कर देता है।",
+      "बिना मेहनत के कुछ भी हासिल नहीं होता।",
+      "अपने लक्ष्य पर ध्यान केंद्रित करें, जीत आपकी होगी।"
+    ];
+
+    async function init() {
+      const res = await fetch('/config');
+      const config = await res.json();
+      const app = initializeApp(config);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      const quoteEl = document.getElementById('hindi-quote');
+      if (quoteEl) quoteEl.textContent = hindiQuotes[dailyQuoteIdx];
+      
+      // Listen for Admin Announcements
+      onSnapshot(doc(db, "announcements", "global"), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          document.getElementById('admin-announcement').style.display = 'block';
+          document.getElementById('announcement-content').textContent = data.message;
+          const time = new Date(data.timestamp).toLocaleString('en-IN', { hour: '2-digit', minute:'2-digit', day:'numeric', month:'short' });
+          document.getElementById('announcement-meta').textContent = `By ${data.author} • ${time}`;
+        } else {
+          document.getElementById('admin-announcement').style.display = 'none';
+        }
+      });
+    }
+    await init();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = '/login.html'; return; }
+
+      // Role guard — redirect if this account logged in as parent/admin
+      const role = localStorage.getItem('gs_role');
+      if (role === 'parent') { window.location.href = '/parent.html'; return; }
+      if (role === 'admin')  { window.location.href = '/admin.html';  return; }
+
+      currentUser = user;
+      const token = await user.getIdToken(true);
+      localStorage.setItem('gs_token', token);
+
+      const name = localStorage.getItem('gs_name') || user.displayName || 'Student';
+      document.getElementById('nav-name').textContent = `👤 ${name}`;
+      
+      const welcomeNameEl = document.getElementById('welcome-name');
+      if (welcomeNameEl) welcomeNameEl.textContent = name;
+
+      // Get user grade
+      try {
+        const r = await fetch(`/auth/user/${user.uid}`, { headers:{ Authorization:`Bearer ${token}` }});
+        if (r.ok) { const p = await r.json(); userGrade = p.grade || '6'; localStorage.setItem('gs_grade', userGrade); }
+      } catch {}
+      userGrade = localStorage.getItem('gs_grade') || '6';
+
+      // Set grade dropdown
+      const gs = document.getElementById('gradeDropdown');
+      userGrade = normalizeGrade(userGrade);
+      selectedGrade = `Grade ${userGrade}`;
+      window.selectedGrade = selectedGrade;
+      gs.value = selectedGrade;
+      document.getElementById('t-grade-display').textContent = selectedGrade;
+
+      await loadPortalData(user.uid);
+      updateSubjectsUI();
+
+      // Handle tab from URL (e.g. ?tab=topics after completing a topic)
+      const tab = new URLSearchParams(location.search).get('tab');
+      if (tab) switchTab(tab);
+      
+      initAIChat();
+    });
+
+    async function loadPortalData(uid) {
+      const token = localStorage.getItem('gs_token');
+      try {
+        const res = await fetch(`/progress/${uid}`, { headers:{ Authorization:`Bearer ${token}` }});
+        if (!res.ok) throw new Error();
+        const { progress, stats } = await res.json();
+        localStorage.setItem('gs_progress_cache', JSON.stringify({ progress, stats, ts: Date.now() }));
+        renderDashboard(stats, progress);
+        updateSubjectsUI();
+      } catch {
+        const c = localStorage.getItem('gs_progress_cache');
+        if (c) { const { progress, stats } = JSON.parse(c); renderDashboard(stats, progress); updateSubjectsUI(); }
+      }
+    }
+
+    function renderDashboard(stats, progress) {
+      const xp = stats?.xp || 0, level = stats?.level || 1, badges = stats?.badges || [], streak = stats?.streak || 0;
+      const xpInLevel = xp % 100;
+      document.getElementById('d-level').textContent = level;
+      document.getElementById('d-xp-label').textContent = `${xpInLevel} / 100 XP`;
+      document.getElementById('d-xp-bar').style.width = `${xpInLevel}%`;
+      document.getElementById('d-stat-xp').textContent = xp;
+      document.getElementById('d-stat-streak').textContent = streak;
+      document.getElementById('d-stat-topics').textContent = (progress?.completedTopics||[]).length;
+      document.getElementById('d-stat-badges').textContent = badges.length;
+      document.getElementById('d-badges').innerHTML = badges.map(b =>
+        `<span class="badge badge-gold" data-i18n="badge_${b}">${window.T('badge_'+b)||b}</span>`).join('');
+
+      const qs = progress?.quizScores || {};
+      const keys = Object.keys(qs).slice(-5).reverse();
+      document.getElementById('d-quiz-scores').innerHTML = keys.length === 0
+        ? '<p class="text-muted">No scores yet.</p>'
+        : keys.map(t => `<div class="flex justify-between" style="padding:8px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:.9rem;">${t}</span>
+            <span class="badge ${qs[t]>=60?'badge-green':''}">${qs[t]}%</span>
+          </div>`).join('');
+    }
+
+    // Subject icon mapping
+    const SUBJECT_ICONS = {
+      'Maths':'🔢', 'Mathematics':'🔢', 'Science':'🔬', 'Physics':'⚡',
+      'Chemistry':'⚗️', 'Biology':'🧬', 'History':'🏰', 'Geography':'🗺️',
+      'Civics':'⚖️', 'Economics':'💹', 'English':'📝', 'EVS':'🌿', 'default':'📚'
+    };
+    const SUBJECT_COLORS = {
+      'Maths':'#6c63ff','Mathematics':'#6c63ff','Science':'#48cfad','Physics':'#f7b731',
+      'Chemistry':'#fc5c65','Biology':'#26de81','History':'#fd9644','Geography':'#45aaf2',
+      'Civics':'#a55eea','Economics':'#2bcbba','English':'#eb3b5a','EVS':'#20bf6b','default':'#778ca3'
+    };
+
+    function renderTopics() {
+      console.log('Rendering topics for grade:', selectedGrade);
+      let grade = selectedGrade;
+      grade = normalizeGrade(grade);
+      selectedGrade = grade; // Ensure normalized
+      document.getElementById('gradeDropdown').value = `Grade ${grade}`;
+      document.getElementById('t-grade-display').textContent = `Grade ${grade}`;
+      const topics = TOPICS_DATA[grade] || [];
+      const c = localStorage.getItem('gs_progress_cache');
+      const progressData = c ? JSON.parse(c) : {};
+      const done = progressData.progress?.completedTopics || [];
+      const userLevel = progressData.stats?.level || 1;
+
+      const completedCount = topics.filter(t => done.includes(t.name)).length;
+      document.getElementById('t-progress-text').textContent =
+        window.TF ? window.TF('topicProgress', { done: completedCount, total: topics.length })
+        : `${completedCount} of ${topics.length} topics completed · Select a subject`;
+
+      if (topics.length === 0) {
+        document.getElementById('subjects-grid').innerHTML = '<p class="text-muted">No subjects found for this grade yet.</p>';
+        document.getElementById('topics-grid').classList.add('hidden');
+        document.getElementById('back-to-subjects').classList.add('hidden');
+        document.getElementById('subjects-grid').style.display = 'grid';
+        document.getElementById('t-heading').innerHTML = window.TF
+          ? window.TF('gradeSubjects', { grade })
+          : `Grade <span id="t-grade-display">${grade}</span> Subjects`;
+        return;
+      }
+
+      // Group topics by subject
+      const subjects = {};
+      topics.forEach((t, idx) => {
+        const subj = t.subject || 'General';
+        if (!subjects[subj]) subjects[subj] = [];
+        subjects[subj].push({ ...t, idx });
+      });
+
+      // Show subject cards grid
+      document.getElementById('subjects-grid').innerHTML = Object.entries(subjects).map(([subj, topicsInSubj]) => {
+        const doneCount = topicsInSubj.filter(t => done.includes(t.name)).length;
+        const total = topicsInSubj.length;
+        const pct = Math.round((doneCount / total) * 100);
+        const icon = SUBJECT_ICONS[subj] || SUBJECT_ICONS.default;
+        const color = SUBJECT_COLORS[subj] || SUBJECT_COLORS.default;
+        return `<div onclick="showSubjectTopics('${subj}')" style="
+          background:var(--bg3); border:2px solid ${doneCount===total&&total>0?color:'var(--border)'};
+          border-radius:12px; padding:18px 14px; cursor:pointer; transition:all .2s; text-align:center;
+        " onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='${doneCount===total&&total>0?color:'var(--border)'}'">
+          <div style="font-size:2rem;margin-bottom:8px;">${icon}</div>
+          <div style="font-weight:700;font-size:.92rem;margin-bottom:4px;">${subj}</div>
+          <div style="font-size:.75rem;color:var(--text2);">${doneCount}/${total} done</div>
+          <div style="background:var(--bg2);border-radius:50px;height:4px;margin-top:8px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${color};border-radius:50px;"></div>
+          </div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('subjects-grid').style.display = 'grid';
+      document.getElementById('topics-grid').classList.add('hidden');
+      document.getElementById('back-to-subjects').classList.add('hidden');
+      document.getElementById('t-heading').innerHTML = window.TF
+        ? window.TF('gradeSubjects', { grade })
+        : `Grade <span id="t-grade-display">${grade}</span> Subjects`;
+    }
+
+    window.showSubjectTopics = function(subject) {
+      console.log('Showing topics for subject:', subject, 'in grade:', selectedGrade);
+      const grade = normalizeGrade(selectedGrade);
+      const topics = TOPICS_DATA[grade] || [];
+      const c = localStorage.getItem('gs_progress_cache');
+      const progressData = c ? JSON.parse(c) : {};
+      const done = progressData.progress?.completedTopics || [];
+      const userLevel = progressData.stats?.level || 1;
+      const filtered = topics.map((t, idx) => ({ ...t, idx, reqLevel: Math.floor(idx / 3) + 1 })).filter(t => t.subject === subject);
+
+      document.getElementById('subjects-grid').style.display = 'none';
+      const grid = document.getElementById('topics-grid');
+      grid.classList.remove('hidden');
+      grid.style.display = 'flex';
+      document.getElementById('back-to-subjects').classList.remove('hidden');
+
+      const icon = SUBJECT_ICONS[subject] || SUBJECT_ICONS.default;
+      document.getElementById('t-heading').innerHTML =
+        `${icon} ${window.TF ? window.TF('subjectTopics', { subject, grade }) : `${subject} · Grade ${grade}`}`;
+      document.getElementById('t-progress-text').textContent =
+        `${filtered.filter(t=>done.includes(t.name)).length} of ${filtered.length} topics completed`;
+
+      grid.innerHTML = filtered.map(t => {
+        const isDone = done.includes(t.name);
+        const isLocked = userLevel < t.reqLevel;
+        
+        if (isLocked) {
+          return `<div class="topic-card" style="opacity:0.6;cursor:not-allowed;">
+            <div class="topic-icon">🔒</div>
+            <div class="topic-info">
+              <h4>${t.name}</h4>
+              <span data-i18n="unlockAt">${window.T('unlockAt') || 'Unlock at Level'}</span> ${t.reqLevel}
+            </div>
+            <div class="topic-status" data-i18n="locked">${window.T('locked') || 'Locked'}</div>
+          </div>`;
+        }
+
+        return `<a class="topic-card ${isDone?'done':''}" href="/topic.html?grade=${grade}&idx=${t.idx}">
+          <div class="topic-icon">${t.icon}</div>
+          <div class="topic-info">
+            <h4>${t.name}</h4>
+            <span>${t.subject} · 5 <span data-i18n="quizQuestions">${window.T('quizQuestions') || 'Quiz Questions'}</span></span>
+          </div>
+          <div class="topic-status ${isDone?'done-status':'pending-status'}" data-i18n="${isDone?'done':'start'}">
+            ${window.T(isDone?'done':'start') || (isDone ? '✓ Done' : '→ Start')}
+          </div>
+        </a>`;
+      }).join('');
+    };
+
+function showSubjects() {
+      console.log('Showing subjects grid');
+      updateSubjectsUI();
+    }
+
+    
+
+    const ALLOWED_GRADES = ['2','3','4','5','6'];
+
+    window.showSubjects = showSubjects;
+    window.switchGrade = function() { updateSubjectsUI(); };
+
+    function normalizeGrade(grade) {
+      if (typeof grade === 'string' && grade.startsWith('Grade ')) {
+        grade = grade.replace('Grade ', '');
+      }
+      if (ALLOWED_GRADES.includes(grade)) return grade;
+      return '2';
+    }
+
+    window.switchTab = function(tab) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      const idx = ['dashboard','topics','ai'].indexOf(tab);
+      document.querySelectorAll('.tab-item')[idx]?.classList.add('active');
+      if (tab === 'topics') updateSubjectsUI();
+    };
+
+    function initAIChat() {
+      const box = document.getElementById('chat-box');
+      box.innerHTML = '';
+      
+      // Load history
+      if (currentUser) {
+        const hist = localStorage.getItem(`gs_chat_${currentUser.uid}`);
+        if (hist) chatHistory = JSON.parse(hist);
+      }
+
+      if (chatHistory.length === 0) {
+        const greeting = window.T('aiGreeting') || "Hello! 👋 Ask me anything...";
+        appendMsg(greeting, 'ai');
+      } else {
+        chatHistory.forEach(m => appendMsg(m.text, m.role === 'model' ? 'ai' : 'user'));
+      }
+    }
+
+    window.sendQuestion = async function() {
+      const input = document.getElementById('chat-input');
+      const question = input.value.trim();
+      if (!question) return;
+      input.value = '';
+      appendMsg(question, 'user');
+
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true; btn.textContent = window.T('aiThinking') || '...';
+
+      try {
+        // Build context-aware prompt
+        const lang = window.getLang();
+        const activeSubjectText = `(Language preference: ${lang})`;
+        const contextualQuestion = `${activeSubjectText} ${question}`;
+
+        const token = await currentUser.getIdToken();
+        localStorage.setItem('gs_token', token);
+
+        const res = await fetch('/ai/ask', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+          body: JSON.stringify({ question: contextualQuestion, history: chatHistory })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'AI error');
+        const { answer, stats } = data;
+
+        chatHistory.push({ role:'user', text: question });
+        chatHistory.push({ role:'model', text: answer });
+        if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+        
+        localStorage.setItem(`gs_chat_${currentUser.uid}`, JSON.stringify(chatHistory));
+
+        appendMsg(answer, 'ai');
+
+        if (stats) {
+          const c = localStorage.getItem('gs_progress_cache');
+          if (c) { const d = JSON.parse(c); d.stats = stats; localStorage.setItem('gs_progress_cache', JSON.stringify(d)); }
+          renderDashboard(stats, JSON.parse(localStorage.getItem('gs_progress_cache')||'{}').progress || {});
+        }
+      } catch (err) {
+        appendMsg(`❌ Error: ${err.message}`, 'ai');
+      } finally {
+        btn.disabled = false; btn.textContent = window.T('aiAsk') || 'Ask ✦';
+      }
+    };
+
+    function appendMsg(text, type) {
+      const box = document.getElementById('chat-box');
+      const d = document.createElement('div');
+      d.className = `msg msg-${type}`;
+      d.innerHTML = type === 'ai'
+        ? `<strong>GramShiksha AI:</strong> ${text.replace(/\n/g,'<br/>')}`
+        : text;
+      box.appendChild(d);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    window.logout = async function() {
+      await signOut(auth);
+      localStorage.clear();
+      window.location.href = '/login.html';
+    };
+  </script>
+  <script type="module">
+    import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Quotes
+      const hindiQuotes = [
+        "शिक्षा ही सबसे बड़ी शक्ति है। (Education is the greatest power.)",
+        "ज्ञान ही धन है। (Knowledge is wealth.)",
+        "कड़ी मेहनत का कोई विकल्प नहीं है। (There is no substitute for hard work.)",
+        "सीखने की कोई उम्र नहीं होती। (There is no age for learning.)",
+        "आज का पाठक, कल का लीडर। (Today's reader, tomorrow's leader.)",
+        "खुद पर विश्वास रखें। (Believe in yourself.)",
+        "मंजिल उन्हें मिलती है जिनके सपनो में जान होती है। (Success comes to those whose dreams have life.)",
+        "हर दिन कुछ नया सीखें। (Learn something new every day.)",
+        "सफलता का रास्ता शिक्षा से होकर जाता है। (The path to success goes through education.)",
+        "आपका भविष्य आपके आज के निर्णयों पर निर्भर करता है। (Your future depends on what you do today.)"
+      ];
+      document.getElementById('hindi-quote').textContent = hindiQuotes[Math.floor(Math.random() * hindiQuotes.length)];
+
+      // 2. Avatar override
+      const navUser = document.querySelector('.navbar-user');
+      const avatar = document.createElement('div');
+      avatar.className = 'user-avatar';
+      avatar.id = 'nav-avatar';
+      avatar.textContent = '👤';
+      navUser.insertBefore(avatar, document.getElementById('nav-name'));
+
+      const nameObserver = new MutationObserver(() => {
+        const nameText = document.getElementById('nav-name').textContent.replace('👤 ', '').trim();
+        if (nameText && nameText !== '...') {
+          avatar.textContent = nameText.charAt(0).toUpperCase();
+          document.getElementById('nav-name').textContent = nameText; // hide emoji
+          nameObserver.disconnect();
+        }
+      });
+      nameObserver.observe(document.getElementById('nav-name'), { characterData: true, childList: true });
+
+      // 3. Observers for Popups & Confetti
+      let popupContainer = document.createElement('div');
+      popupContainer.id = 'popup-container';
+      document.body.appendChild(popupContainer);
+
+      let lastXP = null, lastBadges = null;
+      
+      const xpObserver = new MutationObserver(() => {
+        const currentXP = parseInt(document.getElementById('d-stat-xp').textContent);
+        if (lastXP !== null && currentXP > lastXP) {
+          triggerConfetti();
+          const p = document.createElement('div');
+          p.className = 'anim-popup';
+          p.innerHTML = `+${currentXP - lastXP} XP 🎉`;
+          popupContainer.appendChild(p);
+          setTimeout(() => p.remove(), 2500);
+        }
+        lastXP = currentXP;
+      });
+      xpObserver.observe(document.getElementById('d-stat-xp'), { characterData: true, childList: true });
+
+      const badgeObserver = new MutationObserver(() => {
+        const currentBadges = parseInt(document.getElementById('d-stat-badges').textContent);
+        if (lastBadges !== null && currentBadges > lastBadges) {
+          const p = document.createElement('div');
+          p.className = 'anim-popup anim-popup-badge';
+          p.innerHTML = `🏆 Achievement Unlocked!`;
+          popupContainer.appendChild(p);
+          setTimeout(() => p.remove(), 3000);
+        }
+        lastBadges = currentBadges;
+      });
+      badgeObserver.observe(document.getElementById('d-stat-badges'), { characterData: true, childList: true });
+
+      window.triggerConfetti = function() {
+        const colors = ['#feca57', '#ff9f43', '#1dd1a1', '#ff6b6b', '#5f27cd'];
+        for (let i = 0; i < 60; i++) {
+          let c = document.createElement('div');
+          c.className = 'confetti';
+          c.style.left = Math.random() * 100 + 'vw';
+          c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          c.style.animation = `confetti-fall ${Math.random() * 2 + 1}s linear forwards`;
+          document.body.appendChild(c);
+          setTimeout(() => c.remove(), 3000);
+        }
+      };
+
+      // 4. Leaderboard Fetch
+      setTimeout(async () => {
+        try {
+          const db = getFirestore();
+          const q = query(collection(db, 'students'), orderBy('xp', 'desc'), limit(5));
+          const snap = await getDocs(q);
+          let html = '';
+          let rank = 1;
+          for (const docSnap of snap.docs) {
+            const data = docSnap.data();
+            let name = 'Student';
+            try {
+              const udoc = await getDoc(doc(db, 'users', docSnap.id));
+              if (udoc.exists()) name = udoc.data().name || 'Student';
+            } catch(e) {}
+            const rankClass = rank <= 3 ? `lb-rank-${rank}` : '';
+            html += `<div class="lb-row">
+              <div class="lb-rank ${rankClass}">${rank}</div>
+              <div class="user-avatar" style="width:34px;height:34px;font-size:1rem;box-shadow:none;border-color:#dfe6e9;">${name.charAt(0).toUpperCase()}</div>
+              <div style="flex:1;font-weight:700;font-size:1.1rem;">${name}</div>
+              <div style="font-weight:800;color:var(--accent);font-size:1.1rem;">${data.xp || 0} XP</div>
+            </div>`;
+            rank++;
+          }
+          document.getElementById('leaderboard-list').innerHTML = html || '<p class="text-muted">No students yet.</p>';
+        } catch(e) {
+          console.error('Leaderboard error:', e);
+          document.getElementById('leaderboard-list').innerHTML = '<p class="text-muted">Leaderboard unavailable.</p>';
+        }
+      }, 2000);
+    });
+  </script>
+
+  <style>@media(max-width:600px){.tab-item{padding:12px 12px;font-size:.82rem;}}</style>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) { registration.unregister(); }
+      });
+      caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+      });
+      setTimeout(() => {
+        navigator.serviceWorker.register('/sw.js?v=' + Date.now()).catch(() => {});
+      }, 500);
+    }
+  </script>
+</body>
+</html>

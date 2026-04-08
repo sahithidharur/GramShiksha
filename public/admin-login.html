@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GramShiksha — Admin Login</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#6c63ff"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body class="portal-body">
+  <nav class="navbar" style="padding:15px 5%;display:flex;justify-content:space-between;">
+    <a class="navbar-brand" href="index.html">Gram<span>Shiksha</span></a>
+    <div>
+      <select id="lang-selector" class="input input-sm" style="width:auto;padding:5px 10px;font-size:0.9rem;" onchange="changeLanguage()">
+        <option value="en">English</option>
+        <option value="hi">हिंदी (Hindi)</option>
+        <option value="te">తెలుగు (Telugu)</option>
+      </select>
+    </div>
+  </nav>
+
+  <div class="auth-wrap">
+    <div class="card auth-card" style="max-width:420px;">
+      <h2 style="margin-bottom:8px;">🔐 Admin Login</h2>
+      <p class="text-muted" style="margin-bottom:24px;">Only <strong>sahithidharur@gmail.com</strong> can access this portal.</p>
+
+      <form class="auth-form" id="form-login" onsubmit="handleLogin(event)">
+        <div class="input-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="sahithidharur@gmail.com" required />
+        </div>
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required />
+        </div>
+        <button class="btn btn-primary w-full" type="submit" id="login-btn" data-orig="Login">Login</button>
+        <div id="login-alert"></div>
+      </form>
+
+      <hr style="margin:20px 0;border:none;border-top:2px solid var(--border);"/>
+      <p style="text-align:center;color:var(--text2);font-size:0.85rem;margin:0;">
+        <a href="index.html" style="color:var(--accent);">← Back to Home</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="js/i18n.js?v=6"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+    const ALLOWED_ADMIN_EMAIL = 'sahithidharur@gmail.com';
+    let auth;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('lang-selector').value = window.getLang();
+    });
+
+    window.changeLanguage = function() {
+      window.setLang(document.getElementById('lang-selector').value);
+    };
+
+    async function initFirebase() {
+      const res = await fetch('config');
+      const config = await res.json();
+      const app = initializeApp(config);
+      auth = getAuth(app);
+    }
+    await initFirebase();
+
+    function showAlert(msg, type = 'error') {
+      document.getElementById('login-alert').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('login-btn');
+      btn.disabled = loading;
+      btn.innerHTML = loading ? '<div class="spinner"></div>' : (btn.dataset.orig || 'Login');
+    }
+
+    window.handleLogin = async function(e) {
+      e.preventDefault();
+      setLoading(true);
+      try {
+        const email = document.getElementById('login-email').value.trim().toLowerCase();
+        const pass = document.getElementById('login-password').value;
+
+        if (email !== ALLOWED_ADMIN_EMAIL) {
+          throw new Error('Access denied. Only sahithidharur@gmail.com can login.');
+        }
+
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        if ((cred.user.email || '').toLowerCase() !== ALLOWED_ADMIN_EMAIL) {
+          await signOut(auth);
+          throw new Error('Access denied. Only sahithidharur@gmail.com can login.');
+        }
+
+        const token = await cred.user.getIdToken();
+        localStorage.setItem('gs_token', token);
+        localStorage.setItem('gs_uid', cred.user.uid);
+        localStorage.setItem('gs_name', cred.user.displayName || 'Admin');
+        localStorage.setItem('gs_role', 'admin');
+        window.location.href = 'admin.html';
+      } catch (err) {
+        showAlert(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+  </script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });</script>
+</body>
+</html>
